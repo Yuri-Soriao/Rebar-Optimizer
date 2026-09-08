@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebar Cutting Optimizer</title>
+<style>
+  :root{
+    --ink:#12181f;
+    --steel:#2b3a4a;
+    --steel-2:#3d5266;
+    --plate:#eef1f4;
+    --plate-2:#dfe5ea;
+    --line:#c7d0d9;
+    --accent:#d4611f;
+    --accent-2:#8a3d0f;
+    --good:#1f7a4d;
+    --good-bg:#e5f4ec;
+    --bad:#b3261e;
+    --bad-bg:#fbe9e7;
+    --mono: 'JetBrains Mono','Consolas',monospace;
+    --sans: 'Inter','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--sans);
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(43,58,74,0.05) 23px, rgba(43,58,74,0.05) 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(43,58,74,0.05) 23px, rgba(43,58,74,0.05) 24px),
+      var(--plate);
+    color:var(--ink);
+    padding:28px 18px 60px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    border-bottom:3px solid var(--steel);
+    padding-bottom:14px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .title-block h1{
+    font-size:22px;
+    letter-spacing:.02em;
+    margin:0 0 4px 0;
+    color:var(--steel);
+    font-weight:800;
+  }
+  .title-block .sub{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--steel-2);
+    letter-spacing:.03em;
+  }
+  .tag{
+    font-family:var(--mono);
+    font-size:11px;
+    background:var(--steel);
+    color:var(--plate);
+    padding:5px 10px;
+    border-radius:2px;
+    letter-spacing:.06em;
+  }
+  section{margin-bottom:22px;}
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:0 1px 0 rgba(0,0,0,0.03);
+    overflow:hidden;
+  }
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--steel);
+    color:#fff;
+    padding:9px 14px;
+  }
+  .panel-head h2{
+    font-size:13px;
+    margin:0;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    font-weight:700;
+  }
+  .panel-body{padding:14px;}
+  .table-scroll{
+    max-height:270px;
+    overflow-y:auto;
+  }
+  .table-scroll th{
+    position:sticky;
+    top:0;
+    background:#fff;
+    z-index:1;
+  }
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--steel-2);
+    padding:6px 8px;
+    border-bottom:2px solid var(--line);
+  }
+  td{padding:5px 8px;border-bottom:1px solid var(--plate-2);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  input[type=number]{
+    width:100%;
+    padding:6px 7px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-family:var(--mono);
+    font-size:13.5px;
+    background:#fbfcfd;
+    -moz-appearance:textfield;
+  }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+  }
+  input[type=number]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  tr.row-invalid td{background:var(--bad-bg);}
+  tr.row-invalid input{border-color:var(--bad);background:#fff;}
+  tr.row-invalid input:focus{outline-color:var(--bad);}
+  .col-actions{width:40px;text-align:center;}
+  .icon-btn{
+    background:none;border:none;cursor:pointer;color:#9aa7b3;font-size:16px;line-height:1;
+    padding:4px;border-radius:4px;
+  }
+  .icon-btn:hover{color:var(--bad);background:var(--bad-bg);}
+  .row-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .bulk-box{
+    margin-top:12px;padding:12px;border:1px dashed var(--line);border-radius:6px;background:var(--plate);
+  }
+  .bulk-textarea{
+    width:100%;min-height:110px;padding:8px 9px;border:1px solid var(--line);border-radius:4px;
+    font-family:var(--mono);font-size:12.5px;background:#fbfcfd;resize:vertical;
+  }
+  .bulk-textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .bulk-box code{background:var(--plate-2);padding:1px 4px;border-radius:3px;}
+  .btn{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:13px;
+    padding:8px 14px;
+    border-radius:5px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--steel);
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .btn:hover{background:var(--plate-2);}
+  .btn-primary{
+    background:var(--accent);
+    border-color:var(--accent-2);
+    color:#fff;
+    font-size:14px;
+    padding:11px 20px;
+  }
+  .btn-primary:hover{background:var(--accent-2);}
+  .hint{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--steel-2);
+    margin-top:8px;
+    line-height:1.5;
+  }
+  .calc-bar{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    justify-content:center;
+    margin:26px 0;
+  }
+  .divider-line{flex:1;height:1px;background:var(--line);}
+
+  /* results */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .kpi{
+    background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;
+  }
+  .kpi .num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--steel);}
+  .kpi .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--steel-2);margin-top:2px;}
+  .kpi.warn .num{color:var(--bad);}
+
+  .stock-summary{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+  .stock-chip{
+    border:1px solid var(--line);border-radius:6px;background:#fff;
+    padding:10px 14px;min-width:120px;
+  }
+  .stock-chip .len{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--accent-2);}
+  .stock-chip .bars{font-size:20px;font-weight:800;color:var(--steel);font-family:var(--mono);}
+  .stock-chip .cap{font-size:10.5px;color:var(--steel-2);text-transform:uppercase;letter-spacing:.04em;}
+
+  .pattern-row{
+    display:grid;
+    grid-template-columns:70px 1fr 90px 90px;
+    gap:10px;
+    align-items:center;
+    padding:9px 6px;
+    border-bottom:1px solid var(--plate-2);
+    font-size:13px;
+  }
+  .pattern-row:last-child{border-bottom:none;}
+  .pattern-row.head{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--steel-2);
+    letter-spacing:.05em;border-bottom:2px solid var(--line);
+  }
+  .stock-pill{
+    font-family:var(--mono);font-weight:700;background:var(--steel);color:#fff;
+    border-radius:4px;padding:3px 0;text-align:center;font-size:12.5px;
+  }
+  .pieces{font-family:var(--mono);font-size:13px;}
+  .pieces .qty{color:var(--accent-2);font-weight:700;}
+  .barcount{font-family:var(--mono);font-weight:700;text-align:right;color:var(--steel);}
+  .waste{font-family:var(--mono);text-align:right;color:var(--steel-2);}
+  .waste.zero{color:var(--good);}
+
+  .cutbar{
+    height:20px;border-radius:3px;overflow:hidden;display:flex;margin-top:5px;
+    border:1px solid var(--line);
+  }
+  .cutseg{
+    height:100%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:9.5px;color:#fff;
+    border-right:1px solid rgba(255,255,255,0.35);
+  }
+  .cutseg:last-child{border-right:none;}
+  .cutseg.waste-seg{
+    background:repeating-linear-gradient(45deg, #c7d0d9, #c7d0d9 4px, #dfe5ea 4px, #dfe5ea 8px);
+    color:var(--steel-2);
+  }
+
+  .warn-box{
+    background:var(--bad-bg);border:1px solid var(--bad);color:var(--bad);
+    border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:14px;
+  }
+  .rec-box{
+    background:var(--good-bg);border:1px solid var(--good);color:var(--good);
+    border-radius:6px;padding:12px 14px;font-size:14px;font-weight:700;margin-bottom:16px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .foot-note{font-size:11.5px;color:var(--steel-2);margin-top:18px;line-height:1.6;font-family:var(--mono);}
+
+  /* ---- top banner ---- */
+  .topbar{
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.08)),
+      linear-gradient(120deg, var(--steel) 0%, var(--steel-2) 100%);
+    color:#fff;
+    border-bottom:3px solid var(--accent);
+  }
+  .topbar-inner{
+    max-width:980px;margin:0 auto;
+    padding:20px 18px 18px;
+    display:flex;flex-wrap:wrap;gap:18px 28px;
+    align-items:center;justify-content:space-between;
+  }
+  .topbar-brand{display:flex;align-items:center;gap:12px;}
+  .topbar-brand svg{flex:none;width:38px;height:38px;}
+  .topbar-title{
+    font-size:21px;font-weight:800;letter-spacing:.02em;line-height:1.15;
+  }
+  .topbar-title .hi{color:var(--accent);}
+  .topbar-tagline{
+    font-family:var(--mono);font-size:11.5px;color:#c7d3dd;letter-spacing:.02em;margin-top:3px;
+  }
+  .topbar-desc{
+    flex:1 1 260px;min-width:220px;max-width:360px;
+    font-size:13px;line-height:1.5;color:#dfe6ec;
+  }
+  .topbar-badges{display:flex;gap:18px;flex-wrap:wrap;}
+  .topbar-badge{
+    display:flex;align-items:center;gap:8px;font-size:11.5px;line-height:1.35;color:#eef1f4;
+    min-width:120px;
+  }
+  .topbar-badge svg{flex:none;width:20px;height:20px;color:var(--accent);}
+  .topbar-badge b{display:block;font-weight:700;color:#fff;}
+  @media (max-width:760px){
+    .topbar-inner{padding:16px 16px 14px;}
+    .topbar-desc{display:none;}
+  }
+
+  /* ---- license / anti-piracy notice (single unified box) ---- */
+  .license-box{
+    margin-top:26px;
+    background:var(--bad-bg);
+    border:1px solid var(--bad);
+    border-radius:8px;
+    padding:0;
+    overflow:hidden;
+  }
+  .license-row{
+    display:flex;gap:14px;align-items:center;
+    padding:14px 18px;
+  }
+  .license-row + .license-row{
+    border-top:1px solid rgba(179,38,30,0.25);
+  }
+  .license-icon{
+    flex:none;display:flex;align-items:center;justify-content:center;color:var(--bad);
+  }
+  .license-icon.solid{
+    width:38px;height:38px;border-radius:50%;background:var(--bad);color:#fff;
+  }
+  .license-icon.solid svg{width:18px;height:18px;}
+  .license-icon.outline{
+    width:32px;height:32px;border-radius:50%;background:#fff;border:1.5px solid var(--bad);
+  }
+  .license-icon.outline svg{width:16px;height:16px;}
+  .license-title{
+    font-weight:800;font-size:13px;letter-spacing:.03em;color:var(--bad);margin-bottom:4px;
+  }
+  .license-text{font-size:12.5px;line-height:1.55;color:#7a3530;}
+  .license-text b{color:var(--bad);}
+  .license-support{
+    font-family:'Segoe Print','Bradley Hand','Brush Script MT',cursive;
+    font-size:15px;line-height:1.4;color:var(--accent-2);
+  }
+  ::placeholder{color:#b7c0c8;}
+
+  .loading-box{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;padding:40px 20px;background:#fff;border:1px solid var(--line);
+    border-radius:6px;color:var(--steel-2);font-size:13.5px;text-align:center;
+  }
+  .spinner{
+    width:34px;height:34px;border-radius:50%;
+    border:3px solid var(--plate-2);border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  #statusTag.calculating{
+    background:var(--accent);
+    animation:pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.55;} }
+  .btn-primary:disabled{
+    opacity:.65;cursor:wait;
+  }
+  .btn-primary:disabled:hover{background:var(--accent);}
+
+  @media (max-width:640px){
+    .pattern-row{grid-template-columns:56px 1fr 60px 60px;font-size:12px;}
+  }
+
+  /* ---- license gate ---- */
+  body.locked .topbar, body.locked .wrap{ display:none; }
+  #licenseGate{
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(43,58,74,0.05) 23px, rgba(43,58,74,0.05) 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(43,58,74,0.05) 23px, rgba(43,58,74,0.05) 24px),
+      var(--plate);
+  }
+  .gate-card{
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.08);
+    max-width:380px;width:100%;padding:28px 26px;text-align:center;
+  }
+  .gate-card .gate-icon{
+    width:44px;height:44px;border-radius:50%;background:var(--steel);color:#fff;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+  }
+  .gate-card .gate-icon svg{width:22px;height:22px;}
+  .gate-card h2{margin:0 0 6px;font-size:16px;color:var(--steel);letter-spacing:.02em;}
+  .gate-card p{margin:0 0 18px;font-size:12.5px;color:var(--steel-2);line-height:1.5;}
+  .gate-card input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:5px;
+    font-family:var(--mono);font-size:14px;text-align:center;letter-spacing:.05em;
+    text-transform:uppercase;margin-bottom:10px;background:#fbfcfd;
+  }
+  .gate-card input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .gate-card button{width:100%;justify-content:center;}
+  .gate-error{color:var(--bad);font-size:12px;margin-top:10px;min-height:16px;}
+  .gate-loading{display:none;color:var(--steel-2);font-size:12px;margin-top:10px;}
+</style>
+</head>
+<body class="locked">
+
+<div id="licenseGate">
+  <div class="gate-card">
+    <div class="gate-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    </div>
+    <h2>Enter your license key</h2>
+    <p>This tool is licensed per user/company. Enter the key you received at purchase to unlock it.</p>
+    <input id="gateKeyInput" type="text" placeholder="e.g. RBAR-XXXX-XXXX" autocomplete="off" spellcheck="false">
+    <button class="btn btn-primary" id="gateSubmitBtn" onclick="submitLicenseKey()">Unlock tool</button>
+    <div class="gate-error" id="gateError"></div>
+    <div class="gate-loading" id="gateLoading">Checking key…</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-brand">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="10" width="40" height="6" rx="3" fill="currentColor"/>
+        <rect x="8" y="21" width="32" height="6" rx="3" fill="currentColor" opacity="0.75"/>
+        <rect x="12" y="32" width="24" height="6" rx="3" fill="currentColor" opacity="0.5"/>
+      </svg>
+      <div>
+        <div class="topbar-title">REBAR CUTTING <span class="hi">OPTIMIZER</span></div>
+        <div class="topbar-tagline">cutting-stock combination solver</div>
+      </div>
+    </div>
+    <div class="topbar-desc">Work out the cheapest combination of commercial bar lengths to cover your cut list, with minimal offcut waste.</div>
+    <div class="topbar-badges">
+      <div class="topbar-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        <span><b>Accurate</b>Calculations</span>
+      </div>
+      <div class="topbar-badge">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+        <span><b>Fast &amp; Easy</b>to Use</span>
+      </div>
+      <div class="topbar-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.96 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.96a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.3.7.85 1.26 1.56 1.51.24.09.5.13.75.13H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.86z"/></svg>
+        <span><b>Built for</b>Contractors &amp; Estimators</span>
+      </div>
+    </div>
+    <div class="tag" id="statusTag">READY</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="panel">
+    <div class="panel-head"><h2>1 &middot; Required Cut List</h2></div>
+    <div class="panel-body">
+      <div class="table-scroll" id="reqTableScroll">
+        <table>
+          <thead>
+            <tr><th style="width:45%">Length needed (m)</th><th style="width:45%">Qty (pcs)</th><th class="col-actions"></th></tr>
+          </thead>
+          <tbody id="reqBody"></tbody>
+        </table>
+      </div>
+      <div class="row-actions">
+        <button class="btn" onclick="addReqRow()">+ Add length</button>
+        <button class="btn" onclick="toggleBulk('reqBulkBox')">&#9776; Paste a full list</button>
+      </div>
+      <div id="reqBulkBox" class="bulk-box" style="display:none;">
+        <div class="hint" style="margin-top:0;">One length per line: <code>length, qty</code> (comma, space, or tab-separated — pastes straight from Excel). E.g. <code>7.2, 6</code>. Handles 50+ lines at once.</div>
+        <textarea id="reqBulkText" class="bulk-textarea" placeholder="7.2, 6&#10;2.3, 8&#10;2.5, 14&#10;..."></textarea>
+        <div class="row-actions">
+          <button class="btn" onclick="bulkImportReq(false)">Add to list</button>
+          <button class="btn" onclick="bulkImportReq(true)">Replace entire list</button>
+        </div>
+        <div class="hint" id="reqBulkMsg"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>2 &middot; Available Commercial Lengths</h2></div>
+    <div class="panel-body">
+      <div class="table-scroll" id="stockTableScroll">
+        <table>
+          <thead>
+            <tr><th style="width:45%">Stock length (m)</th><th style="width:45%">Price per bar (optional)</th><th class="col-actions"></th></tr>
+          </thead>
+          <tbody id="stockBody"></tbody>
+        </table>
+      </div>
+      <div class="row-actions">
+        <button class="btn" onclick="addStockRow()">+ Add stock length</button>
+        <button class="btn" onclick="toggleBulk('stockBulkBox')">&#9776; Paste a full list</button>
+      </div>
+      <div id="stockBulkBox" class="bulk-box" style="display:none;">
+        <div class="hint" style="margin-top:0;">One stock length per line: <code>length, price</code> (price optional). E.g. <code>9, 3800</code> or just <code>9</code>.</div>
+        <textarea id="stockBulkText" class="bulk-textarea" placeholder="6&#10;7.5&#10;9&#10;10.5&#10;12"></textarea>
+        <div class="row-actions">
+          <button class="btn" onclick="bulkImportStock(false)">Add to list</button>
+          <button class="btn" onclick="bulkImportStock(true)">Replace entire list</button>
+        </div>
+        <div class="hint" id="stockBulkMsg"></div>
+      </div>
+      <div class="hint">Leave price blank to rank by total meters purchased instead of peso cost. Remove rows to test a single available length only.</div>
+    </div>
+  </section>
+
+  <div class="calc-bar">
+    <div class="divider-line"></div>
+    <button class="btn btn-primary" id="calcBtn" onclick="calculate()">&#9881; Calculate optimal cutting plan</button>
+    <div class="divider-line"></div>
+  </div>
+
+  <section id="results" style="display:none;"></section>
+
+  <div class="foot-note" id="footNote"></div>
+
+  <div class="license-box">
+    <div class="license-row">
+      <div class="license-icon solid">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </div>
+      <div>
+        <div class="license-title">IMPORTANT &mdash; FOR LICENSED USE ONLY</div>
+        <div class="license-text">This tool is a paid product. <b>Please do not copy, redistribute, or share this file with others outside your license.</b> Unauthorized resale or public distribution is prohibited.</div>
+      </div>
+    </div>
+    <div class="license-row">
+      <div class="license-icon outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg>
+      </div>
+      <div class="license-text">Licensed to a single user/company. Keep it out of public repos or shared drives.</div>
+    </div>
+    <div class="license-row">
+      <div class="license-icon outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9 8 11 4.6-2 8-6 8-11V5z"/><path d="M9 12.2l2 2 4-4.4" stroke-width="2.4"/></svg>
+      </div>
+      <div class="license-text"><b>This file is protected.</b> Please respect the license terms this was provided under and avoid sharing or reposting it elsewhere.</div>
+    </div>
+    <div class="license-row">
+      <div class="license-support">Support original creators.<br>Keep it professional.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- License gate ----
+// Checks the entered key against the serverless function (netlify/functions/verify-license.js).
+// On success, remembers it in localStorage so the same browser doesn't have to
+// re-enter the key every visit. This is a lightweight per-device unlock, not a
+// full multi-seat enforcement system - see the README that ships alongside
+// this file for what this does and doesn't protect against.
+const LICENSE_STORAGE_KEY = 'rebarOptimizer_licenseKey';
+
+function unlockApp(){
+  document.body.classList.remove('locked');
+  document.getElementById('licenseGate').style.display = 'none';
+}
+
+async function verifyKey(key){
+  const res = await fetch('/.netlify/functions/verify-license', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ key })
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return !!data.valid;
+}
+
+async function submitLicenseKey(){
+  const input = document.getElementById('gateKeyInput');
+  const err = document.getElementById('gateError');
+  const loading = document.getElementById('gateLoading');
+  const btn = document.getElementById('gateSubmitBtn');
+  const key = input.value.trim();
+  err.textContent = '';
+  if (!key) { err.textContent = 'Enter a license key.'; return; }
+
+  loading.style.display = 'block';
+  btn.disabled = true;
+  try {
+    const ok = await verifyKey(key);
+    if (ok) {
+      localStorage.setItem(LICENSE_STORAGE_KEY, key);
+      unlockApp();
+    } else {
+      err.textContent = 'That key isn\'t valid. Check for typos or contact your supplier.';
+    }
+  } catch (e) {
+    err.textContent = 'Could not reach the license server. Try again in a moment.';
+  } finally {
+    loading.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+// On load: if a key was validated before on this browser, re-check it
+// silently (in case it was revoked) rather than trusting it forever.
+(async function autoCheckStoredKey(){
+  const stored = localStorage.getItem(LICENSE_STORAGE_KEY);
+  if (!stored) return;
+  try {
+    const ok = await verifyKey(stored);
+    if (ok) unlockApp();
+    else localStorage.removeItem(LICENSE_STORAGE_KEY);
+  } catch (e) {
+    // Network hiccup: don't lock out a previously-valid user over a blip.
+    unlockApp();
+  }
+})();
+
+document.getElementById('gateKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitLicenseKey();
+});
+
+const COLORS = ['#2b3a4a','#d4611f','#8a3d0f','#3d5266','#5a7184','#b3261e','#1f7a4d','#7a5c1f'];
+// Fresh start: no preloaded required lengths/quantities. Add rows with
+// "+ Add length", or paste a full list in via "Paste a full list" above.
+let reqRows = [];
+let stockRows = [
+  {len:6, price:null},
+  {len:7.5, price:null},
+  {len:9, price:null},
+  {len:10.5, price:null},
+  {len:12, price:null},
+];
+
+// A length/qty is only usable if it's a real, finite, strictly-positive
+// number - this explicitly rejects 0, negative values, NaN, and Infinity
+// (rather than relying on a bare ">0" comparison, which is technically
+// enough to exclude those too, but reads as an accident rather than an
+// intentional guard, and gives us a place to flag *why* a row is bad).
+function isValidPositive(n){ return Number.isFinite(n) && n > 0; }
+
+// Lengths are entered to a maximum of 2 decimal places (centimeter
+// precision) - anything typed with more decimals (e.g. 1.256) is snapped to
+// the nearest 0.01 on blur, rather than silently carried through at full
+// precision.
+function round2(n){ return Math.round(n*100)/100; }
+
+function renderReq(){
+  const body = document.getElementById('reqBody');
+  body.innerHTML = '';
+  reqRows.forEach((r,i)=>{
+    const touched = !(r.len === null && r.qty === null);
+    const invalid = touched && !(isValidPositive(r.len) && isValidPositive(r.qty));
+    const tr = document.createElement('tr');
+    if (invalid) tr.classList.add('row-invalid');
+    tr.innerHTML = `
+      <td><input type="number" step="0.01" min="0" value="${r.len ?? ''}" onchange="reqRows[${i}].len=round2(parseFloat(this.value)||0); renderReq();"></td>
+      <td><input type="number" step="1" min="0" value="${r.qty ?? ''}" onchange="reqRows[${i}].qty=parseInt(this.value)||0; renderReq();"></td>
+      <td class="col-actions"><button class="icon-btn" onclick="removeReqRow(${i})" title="Remove row">&#10005;</button></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+function renderStock(){
+  const body = document.getElementById('stockBody');
+  body.innerHTML = '';
+  stockRows.forEach((r,i)=>{
+    const touched = !(r.len === null && r.price === null);
+    const priceInvalid = r.price !== null && r.price !== undefined && !isNaN(r.price) && r.price < 0;
+    const invalid = touched && (!isValidPositive(r.len) || priceInvalid);
+    const tr = document.createElement('tr');
+    if (invalid) tr.classList.add('row-invalid');
+    tr.innerHTML = `
+      <td><input type="number" step="0.01" min="0" value="${r.len ?? ''}" onchange="stockRows[${i}].len=round2(parseFloat(this.value)||0); renderStock();"></td>
+      <td><input type="number" step="0.01" min="0" placeholder="optional" value="${r.price ?? ''}" onchange="stockRows[${i}].price=this.value===''?null:parseFloat(this.value); renderStock();"></td>
+      <td class="col-actions"><button class="icon-btn" onclick="removeStockRow(${i})" title="Remove row">&#10005;</button></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+function addReqRow(){
+  reqRows.push({len:null,qty:null});
+  renderReq();
+  const el = document.getElementById('reqTableScroll');
+  el.scrollTop = el.scrollHeight;
+}
+function removeReqRow(i){ reqRows.splice(i,1); renderReq(); }
+function addStockRow(){
+  stockRows.push({len:null,price:null});
+  renderStock();
+  const el = document.getElementById('stockTableScroll');
+  el.scrollTop = el.scrollHeight;
+}
+function removeStockRow(i){ stockRows.splice(i,1); renderStock(); }
+
+function toggleBulk(id){
+  const el = document.getElementById(id);
+  el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+}
+
+// Splits a pasted block of text into (number, number) pairs, one per
+// non-blank line. Accepts commas, tabs, or runs of whitespace as the
+// separator so it works whether someone types "7.2, 6", pastes a
+// tab-separated pair straight out of Excel, or just types "7.2 6". Lines
+// that don't resolve to two positive numbers are skipped and counted, so
+// the person gets an honest "N rows added, M lines skipped" summary rather
+// than a silent partial import.
+function parseBulkPairs(text){
+  const lines = text.split(/\r?\n/);
+  const rows = [];
+  let skipped = 0;
+  lines.forEach(line=>{
+    const trimmed = line.trim();
+    if (trimmed === '') return; // blank line, not a skip
+    const parts = trimmed.split(/[,\t]+|\s+/).filter(p=>p!=='');
+    if (parts.length < 1) { skipped++; return; }
+    const a = parseFloat(parts[0]);
+    const b = parts.length >= 2 ? parseFloat(parts[1]) : null;
+    if (!Number.isFinite(a)) { skipped++; return; }
+    rows.push({ a: round2(a), b: (b !== null && Number.isFinite(b)) ? b : null });
+  });
+  return { rows, skipped };
+}
+
+function bulkImportReq(replace){
+  const text = document.getElementById('reqBulkText').value;
+  const { rows, skipped } = parseBulkPairs(text);
+  const parsed = rows
+    .filter(r => isValidPositive(r.a) && r.b !== null && isValidPositive(r.b))
+    .map(r => ({ len: r.a, qty: Math.round(r.b) }));
+  const badCount = (rows.length - parsed.length) + skipped;
+  if (parsed.length === 0) {
+    document.getElementById('reqBulkMsg').textContent = 'No valid "length, qty" rows found — nothing imported.';
+    return;
+  }
+  if (replace) reqRows = parsed;
+  else reqRows = reqRows.filter(r => r.len !== null || r.qty !== null).concat(parsed);
+  renderReq();
+  document.getElementById('reqBulkMsg').textContent =
+    `Imported ${parsed.length} length(s)` + (badCount > 0 ? `, skipped ${badCount} invalid line(s).` : '.');
+  document.getElementById('reqBulkText').value = '';
+}
+
+function bulkImportStock(replace){
+  const text = document.getElementById('stockBulkText').value;
+  const { rows, skipped } = parseBulkPairs(text);
+  const parsed = rows
+    .filter(r => isValidPositive(r.a))
+    .map(r => ({ len: r.a, price: (r.b !== null && r.b >= 0) ? r.b : null }));
+  const badCount = (rows.length - parsed.length) + skipped;
+  if (parsed.length === 0) {
+    document.getElementById('stockBulkMsg').textContent = 'No valid stock lengths found — nothing imported.';
+    return;
+  }
+  if (replace) stockRows = parsed;
+  else stockRows = stockRows.filter(r => r.len !== null).concat(parsed);
+  renderStock();
+  document.getElementById('stockBulkMsg').textContent =
+    `Imported ${parsed.length} stock length(s)` + (badCount > 0 ? `, skipped ${badCount} invalid line(s).` : '.');
+  document.getElementById('stockBulkText').value = '';
+}
+
+renderReq();
+renderStock();
+
+// Stop the mouse wheel from incrementing/decrementing number inputs.
+// Browsers apply the scroll to a focused <input type="number"> by default;
+// blurring it on wheel makes the scroll just scroll the page instead.
+document.addEventListener('wheel', function(e){
+  const el = document.activeElement;
+  if (el && el.tagName === 'INPUT' && el.type === 'number') {
+    el.blur();
+  }
+}, {passive:true});
+
+const EPS = 1e-6;
+const r3 = x => Math.round(x*1000)/1000;
+
+// Converts a length in meters to an integer count of centimeters. Using an
+// integer grid (rather than raw floats) is what lets the solver do exact
+// knapsack/DP work without float drift. Centimeters (rather than
+// millimeters) match the 2-decimal-place limit enforced on every length
+// input (see round2()).
+function toCents(x){ return Math.round(x*100); }
+
+// ====================================================================
+// CUTTING-STOCK SOLVER: LP column generation (Gilmore-Gomory) followed by
+// branch-and-bound finishing on the generated pattern set.
+//
+// WHY THIS EXISTS (replacing a previous brute-force DP): the previous
+// solver tracked an exact state for every possible remaining-quantity
+// combination, which is only tractable while the product of (quantity+1)
+// across all distinct required lengths stays under ~200,000 - e.g. 12
+// distinct lengths at 100 pieces each is roughly 101^12 (~10^24) states,
+// astronomically beyond ANY brute-force approach in any language, not just
+// a browser limitation. Real cutting-stock software instead works with
+// "patterns" (a single bar's worth of pieces) rather than raw quantities:
+//
+//   1. COLUMN GENERATION: rather than enumerate every conceivable pattern
+//      (also combinatorially explosive), start from a small seed set of
+//      patterns, solve the linear-programming relaxation of "how many of
+//      each pattern to cut" via simplex, and use the resulting shadow
+//      prices (duals) to solve a bounded-knapsack "pricing" subproblem
+//      that finds the single most valuable NEW pattern to add. Repeat
+//      until no pattern would improve the LP - at that point the LP
+//      relaxation is provably optimal, and in practice only a few dozen
+//      to a few hundred patterns are ever generated even for large inputs.
+//   2. BRANCH & BOUND: the LP relaxation can recommend fractional bar
+//      counts (e.g. "cut 24.6 bars of this pattern"), which isn't
+//      buildable. Branch-and-bound is run on just the small pattern set
+//      from step 1 to find the true best INTEGER combination, using the
+//      LP bound at each branch to prune the search. For small/typical cut
+//      lists this reaches the exact, proven optimum in milliseconds. For
+//      very large cut lists it runs until a fixed time budget, returning
+//      the best integer plan found; the gap to the (printed) LP lower
+//      bound is normally a small fraction of one percent - i.e. the plan
+//      is either exactly optimal or immeasurably close to it in practice.
+// ====================================================================
+
+// ---- Two-phase simplex: minimize c^T x  s.t.  A x >= b,  x >= 0 ----
+// Handles rows with negative b (as produced by upper-bound branch
+// constraints, e.g. "-x_p >= -floorV") by normalizing each row to
+// non-negative RHS first (a negative-RHS row is flipped into a "<="
+// row with a plain slack instead of a surplus+artificial pair).
+function solveLPGE(c, A, b, deadline) {
+  const m = A.length;
+  const n = c.length;
+  const rows = [];
+  for (let i = 0; i < m; i++) {
+    if (b[i] < 0) rows.push({ coeffs: A[i].map(v => -v), rhs: -b[i], type: 'le' });
+    else rows.push({ coeffs: A[i], rhs: b[i], type: 'ge' });
+  }
+  const slackOff = n, surplusOff = n + m, artOff = n + 2 * m;
+  const totalVars = n + 3 * m;
+
+  let T = [];
+  const basis = [];
+  const isArtificialBasic = [];
+  for (let i = 0; i < m; i++) {
+    const row = new Array(totalVars + 1).fill(0);
+    for (let j = 0; j < n; j++) row[j] = rows[i].coeffs[j];
+    if (rows[i].type === 'le') {
+      row[slackOff + i] = 1;
+      row[totalVars] = rows[i].rhs;
+      T.push(row);
+      basis.push(slackOff + i);
+      isArtificialBasic.push(false);
+    } else {
+      row[surplusOff + i] = -1;
+      row[artOff + i] = 1;
+      row[totalVars] = rows[i].rhs;
+      T.push(row);
+      basis.push(artOff + i);
+      isArtificialBasic.push(true);
+    }
+  }
+
+  function computeObjRow(costVec) {
+    const row = new Array(totalVars + 1).fill(0);
+    for (let j = 0; j <= totalVars; j++) {
+      let val = (j < totalVars) ? costVec[j] : 0;
+      for (let i = 0; i < m; i++) val -= costVec[basis[i]] * T[i][j];
+      row[j] = val;
+    }
+    return row;
+  }
+  function pivot(prow, pcol) {
+    const piv = T[prow][pcol];
+    for (let j = 0; j < T[prow].length; j++) T[prow][j] /= piv;
+    for (let i = 0; i < T.length; i++) {
+      if (i === prow) continue;
+      const factor = T[i][pcol];
+      if (Math.abs(factor) < 1e-12) continue;
+      for (let j = 0; j < T[i].length; j++) T[i][j] -= factor * T[prow][j];
+    }
+    basis[prow] = pcol;
+  }
+  function simplexLoop(costVec, allowedCols, maxIter = 20000) {
+    for (let iter = 0; iter < maxIter; iter++) {
+      // A single LP solve can occasionally need many pivots (degenerate
+      // cutting-stock tableaus are prone to this without a full anti-cycling
+      // rule). Checking a shared deadline here - not just once per B&B node -
+      // stops any ONE solve from silently eating the whole time budget on its
+      // own; it just returns whatever the tableau currently shows, which the
+      // caller treats as "not improved / bail out of this branch".
+      if (deadline && iter % 200 === 0 && Date.now() > deadline) return { status: 'timeout' };
+      const z = computeObjRow(costVec);
+      let pcol = -1, best = -1e-7;
+      for (const j of allowedCols) if (z[j] < best) { best = z[j]; pcol = j; }
+      if (pcol === -1) return { status: 'optimal', z };
+      let prow = -1, bestRatio = Infinity;
+      for (let i = 0; i < m; i++) {
+        const a = T[i][pcol];
+        if (a > 1e-9) {
+          const ratio = T[i][totalVars] / a;
+          if (ratio < bestRatio - 1e-9) { bestRatio = ratio; prow = i; }
+        }
+      }
+      if (prow === -1) return { status: 'unbounded' };
+      pivot(prow, pcol);
+    }
+    return { status: 'iterlimit' };
+  }
+
+  const anyArtificial = isArtificialBasic.some(v => v);
+  if (anyArtificial) {
+    const cost1 = new Array(totalVars).fill(0);
+    for (let i = 0; i < m; i++) if (isArtificialBasic[i]) cost1[artOff + i] = 1;
+    const allCols1 = [];
+    for (let j = 0; j < totalVars; j++) allCols1.push(j);
+    simplexLoop(cost1, allCols1);
+    let phase1obj = 0;
+    for (let i = 0; i < m; i++) phase1obj += cost1[basis[i]] * T[i][totalVars];
+    if (phase1obj > 1e-6) return { feasible: false };
+    // Degenerate-basis cleanup: an artificial can end phase 1 basic at value 0
+    // (a degenerate BFS). Left in the basis, phase 2 pivots on OTHER columns
+    // can make that "retired" artificial's value drift positive again via
+    // elimination, silently violating that row's real constraint. Explicitly
+    // pivot any such zero-valued artificial out right after phase 1 (safe:
+    // RHS=0 there, so the pivot cannot change any row's RHS).
+    for (let i = 0; i < m; i++) {
+      if (basis[i] >= artOff && Math.abs(T[i][totalVars]) < 1e-9) {
+        let replCol = -1;
+        for (let j = 0; j < artOff; j++) if (Math.abs(T[i][j]) > 1e-7) { replCol = j; break; }
+        if (replCol !== -1) pivot(i, replCol);
+      }
+    }
+  }
+
+  const cost2 = new Array(totalVars).fill(0);
+  for (let j = 0; j < n; j++) cost2[j] = c[j];
+  const allowedCols2 = [];
+  for (let j = 0; j < n + m; j++) allowedCols2.push(j);
+  simplexLoop(cost2, allowedCols2);
+
+  const z2 = computeObjRow(cost2);
+  const x = new Array(n).fill(0);
+  for (let i = 0; i < m; i++) if (basis[i] < n) x[basis[i]] = T[i][totalVars];
+  let obj = 0;
+  for (let j = 0; j < n; j++) obj += c[j] * x[j];
+  const duals = new Array(m).fill(0);
+  for (let i = 0; i < m; i++) duals[i] = (rows[i].type === 'ge') ? -z2[artOff + i] : -z2[slackOff + i];
+
+  return { feasible: true, x, obj, duals };
+}
+
+// ---- Bounded-knapsack pricing subproblem (column generation's "which new
+// pattern is most worth adding" step): given per-piece "profits" (the LP's
+// duals), find the counts of each piece type that maximize total profit
+// without exceeding the stock's capacity. Solved via binary (power-of-two)
+// splitting into 0/1 super-items, then a standard 0/1 knapsack DP with full
+// parent-pointer reconstruction - exact for integer counts, and the split
+// keeps the item count small (O(n log maxCount)) so the reconstruction
+// table stays cheap even though it's a full (items x capacity) table. ----
+function knapsackBestPatternBinary(capacity, lens, maxCounts, profits) {
+  const n = lens.length;
+  const items = [];
+  for (let i = 0; i < n; i++) {
+    let remaining = maxCounts[i];
+    let k = 1;
+    while (remaining > 0) {
+      const take = Math.min(k, remaining);
+      items.push({ len: lens[i] * take, profit: profits[i] * take, typeIdx: i, mult: take });
+      remaining -= take;
+      k *= 2;
+    }
+  }
+  const dp = new Float64Array(capacity + 1).fill(0);
+  const numItems = items.length;
+  const keep = new Uint8Array(numItems * (capacity + 1));
+  for (let it = 0; it < numItems; it++) {
+    const { len, profit } = items[it];
+    if (len <= 0) continue;
+    for (let w = capacity; w >= len; w--) {
+      const cand = dp[w - len] + profit;
+      if (cand > dp[w] + 1e-9) { dp[w] = cand; keep[it * (capacity + 1) + w] = 1; }
+    }
+  }
+  let bestW = 0, bestVal = dp[0];
+  for (let w = 0; w <= capacity; w++) if (dp[w] > bestVal + 1e-9) { bestVal = dp[w]; bestW = w; }
+  const counts = new Array(n).fill(0);
+  let w = bestW;
+  for (let it = numItems - 1; it >= 0; it--) {
+    const idx = it * (capacity + 1) + w;
+    if (keep[idx]) { counts[items[it].typeIdx] += items[it].mult; w -= items[it].len; }
+  }
+  return { value: bestVal, counts };
+}
+
+// ---- Column generation master loop: alternates solving the restricted
+// master LP (only known patterns) with the knapsack pricing subproblem
+// (find the best NEW pattern given current duals) until no pattern would
+// improve the LP - i.e. until the LP relaxation is provably optimal over
+// the space of ALL possible patterns, not just the ones explicitly listed.
+function solveCuttingStockLP(distinctLens, demand, stockLens, stockCost, maxIterations) {
+  const n = distinctLens.length;
+  const numStocks = stockLens.length;
+  maxIterations = maxIterations || 1500;
+
+  let patterns = [];
+  for (let s = 0; s < numStocks; s++) {
+    for (let i = 0; i < n; i++) {
+      const maxc = Math.floor(stockLens[s] / distinctLens[i]);
+      if (maxc > 0) {
+        const counts = new Array(n).fill(0);
+        counts[i] = Math.min(maxc, demand[i] || maxc);
+        patterns.push({ stockIdx: s, counts });
+      }
+    }
+  }
+  function patKey(p) { return p.stockIdx + '|' + p.counts.join(','); }
+  const seen = new Set();
+  patterns = patterns.filter(p => { const k = patKey(p); if (seen.has(k)) return false; seen.add(k); return true; });
+
+  let lastLP = null;
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const c = patterns.map(p => stockCost[p.stockIdx]);
+    const A = [];
+    for (let i = 0; i < n; i++) A.push(patterns.map(p => p.counts[i]));
+    const b = demand.slice();
+
+    const lp = solveLPGE(c, A, b);
+    if (!lp.feasible) return { feasible: false };
+    lastLP = lp;
+
+    let addedAny = false;
+    for (let s = 0; s < numStocks; s++) {
+      const maxCounts = distinctLens.map((l, i) => Math.min(demand[i], Math.floor(stockLens[s] / l)));
+      if (maxCounts.every(m => m === 0)) continue;
+      const { value, counts } = knapsackBestPatternBinary(stockLens[s], distinctLens, maxCounts, lp.duals);
+      const reducedCost = stockCost[s] - value;
+      if (reducedCost < -1e-6) {
+        const newPat = { stockIdx: s, counts };
+        const k = patKey(newPat);
+        if (!seen.has(k)) { seen.add(k); patterns.push(newPat); addedAny = true; }
+      }
+    }
+    if (!addedAny) return { feasible: true, patterns, x: lastLP.x, obj: lastLP.obj };
+  }
+  return { feasible: true, patterns, x: lastLP.x, obj: lastLP.obj, iterLimitHit: true };
+}
+
+// ---- Branch & bound on the final (small) pattern set from column
+// generation - typically only tens to low hundreds of patterns even for
+// large inputs, which makes solving the TRUE integer program on just this
+// set (rather than approximating via rounding) practical. Uses the LP
+// relaxation at each node for pruning, branches on the most-fractional
+// pattern count, and explores the branch closest to the LP's fractional
+// value first (finds a good/optimal solution earlier, which then prunes
+// much more of the remaining tree via the bound check). When every
+// pattern's cost is a whole number (the case whenever no price is
+// entered, since cost then equals the stock length in integer
+// centimeters), the true optimum must also be a whole number, so the LP
+// bound is rounded UP for pruning - a standard MILP tightening that
+// substantially cuts down the search for larger problems.
+function solveILP_BranchAndBound(patterns, demand, stockCost, timeBudgetMs, seed) {
+  timeBudgetMs = timeBudgetMs || 6000;
+  const numPat = patterns.length;
+  const n = demand.length;
+  const baseA = [];
+  for (let i = 0; i < n; i++) baseA.push(patterns.map(p => p.counts[i]));
+  const baseB = demand.slice();
+  const c = patterns.map(p => stockCost[p.stockIdx]);
+
+  const costsAreIntegers = c.every(v => Math.abs(v - Math.round(v)) < 1e-6);
+  function boundFor(obj) { return costsAreIntegers ? Math.ceil(obj - 1e-6) : obj; }
+
+  // A caller-supplied feasible integer solution (see buildHeuristicSeed)
+  // seeds "best" before the search starts. This is a plain B&B correctness
+  // tool, not a shortcut: every node is still bound-checked against
+  // whatever "best" currently is, so a seed can only ever be REPLACED by a
+  // provably better integer solution, never accepted on faith. What it
+  // buys is pruning power - with a good starting bound, most of the tree
+  // is cut away immediately (bound-vs-best fails) instead of the search
+  // having to stumble onto a first feasible leaf on its own, which for
+  // large cutting-stock instances can otherwise take longer than the whole
+  // time budget. If the seed happens to already equal the true optimum, the
+  // search still finishes and legitimately reports provenOptimal=true,
+  // because the bound check is the actual proof mechanism, not a side
+  // effect of luck.
+  let best = (seed && seed.x) ? { x: seed.x.slice(), obj: seed.obj } : null;
+  const start = Date.now();
+  const deadline = start + timeBudgetMs;
+  let nodes = 0;
+  let timedOut = false;
+
+  function solveRelaxed(extraA, extraB) {
+    return solveLPGE(c, baseA.concat(extraA), baseB.concat(extraB), deadline);
+  }
+
+  function recurse(extraA, extraB) {
+    if (Date.now() - start > timeBudgetMs) { timedOut = true; return; }
+    nodes++;
+    const lp = solveRelaxed(extraA, extraB);
+    if (!lp.feasible) return;
+    if (best && boundFor(lp.obj) >= best.obj - 1e-6) return;
+
+    let bestIdx = -1, bestFrac = 1e-6, bestFracVal = 0;
+    for (let p = 0; p < numPat; p++) {
+      const frac = lp.x[p] - Math.floor(lp.x[p]);
+      const distToInt = Math.min(frac, 1 - frac);
+      if (distToInt > bestFrac) { bestFrac = distToInt; bestIdx = p; bestFracVal = frac; }
+    }
+    if (bestIdx === -1) {
+      const rounded = lp.x.map(v => Math.round(v));
+      let obj = 0; for (let p = 0; p < numPat; p++) obj += c[p] * rounded[p];
+      if (!best || obj < best.obj - 1e-6) best = { x: rounded, obj };
+      return;
+    }
+    const floorV = Math.floor(lp.x[bestIdx]);
+    const rowUp = new Array(numPat).fill(0); rowUp[bestIdx] = -1;   // x <= floorV
+    const rowDown = new Array(numPat).fill(0); rowDown[bestIdx] = 1; // x >= floorV+1
+    if (bestFracVal >= 0.5) {
+      recurse(extraA.concat([rowDown]), extraB.concat([floorV + 1]));
+      recurse(extraA.concat([rowUp]), extraB.concat([-floorV]));
+    } else {
+      recurse(extraA.concat([rowUp]), extraB.concat([-floorV]));
+      recurse(extraA.concat([rowDown]), extraB.concat([floorV + 1]));
+    }
+  }
+  recurse([], []);
+  return best ? { feasible: true, x: best.x, obj: best.obj, nodes, timedOut, provenOptimal: !timedOut }
+              : { feasible: false, nodes, timedOut };
+}
+
+function fmt(n, d=2){ return Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+// A fixed 1-decimal percentage rounds any waste below 0.05% down to "0.0%" -
+// which looks like zero waste even when the per-pattern breakdown clearly
+// shows real offcuts (e.g. 2m of waste out of 8,262m purchased is a real,
+// nonzero 0.0242%, not actually zero). This keeps 1 decimal for normal
+// values but adds more decimals only when needed to show the first
+// significant digit, so genuine waste is never displayed as flat "0.0%".
+function fmtPct(n){
+  if (!(n > 0)) return '0.0%';
+  let d = 1;
+  while (d < 4 && Number(n.toFixed(d)) === 0) d++;
+  return n.toFixed(d) + '%';
+}
+
+// Lengths carry up to 3 decimals of real precision (mm), but most entries
+// are whole meters or 2-decimal cm values - padding those with trailing
+// zeros ("7.500m", "6.000m") looks like false precision. This shows the
+// full 3 decimals only when the value actually needs them, and trims the
+// rest ("7.5m", "6m", "1.235m" stays "1.235m").
+function fmtLen(n){
+  let s = Number(n).toFixed(3);
+  if (s.indexOf('.') !== -1) {
+    s = s.replace(/0+$/,'').replace(/\.$/,'');
+  }
+  return s;
+}
+
+// ---- Heuristic integer seed for branch-and-bound (round-down + residual
+// cover) ----
+// The column-generation LP can land on a FRACTIONAL vertex even when an
+// equally-cheap INTEGER vertex exists (cutting-stock LPs are notoriously
+// degenerate, i.e. many tied vertices) - so simplex alone doesn't
+// guarantee handing branch-and-bound a good starting point, and B&B was
+// then left to discover a decent integer solution purely by search, which
+// on large instances can exhaust the whole time budget before finding one
+// anywhere near the true optimum. This builds a strong starting guess
+// instead of leaving "best" empty:
+//   1. Floor the LP's fractional bar counts - this covers most of the
+//      demand outright and can never overshoot it.
+//   2. Whatever demand is left over (usually small) is solved as its own,
+//      much smaller cutting-stock ILP using the SAME pattern set, which
+//      branch-and-bound can typically finish - and often prove optimal
+//      for - almost instantly.
+//   3. If that residual solve can't even find a feasible answer inside
+//      its own (small) time slice, fall back to a simple greedy cover
+//      using single-length patterns, which are always present in the
+//      pattern set for every feasible required length and so always
+//      succeed.
+// The result is only ever used to SEED best (see solveILP_BranchAndBound
+// above) - it never substitutes for the proof that real branch-and-bound
+// provides, it just gives that search a much stronger starting bound.
+function findBestSingletonPattern(patterns, lenIdx) {
+  let bestIdx = -1, bestCount = 0;
+  patterns.forEach((p, idx) => {
+    const isSingleton = p.counts.every((cnt, j) => j === lenIdx ? cnt > 0 : cnt === 0);
+    if (isSingleton && p.counts[lenIdx] > bestCount) { bestCount = p.counts[lenIdx]; bestIdx = idx; }
+  });
+  return { bestIdx, bestCount };
+}
+function greedyCoverResidual(patterns, residual) {
+  const extraX = new Array(patterns.length).fill(0);
+  for (let i = 0; i < residual.length; i++) {
+    if (residual[i] <= 0) continue;
+    const { bestIdx, bestCount } = findBestSingletonPattern(patterns, i);
+    if (bestIdx === -1 || bestCount <= 0) continue; // shouldn't happen: caller only reaches feasible lengths
+    extraX[bestIdx] += Math.ceil(residual[i] / bestCount);
+  }
+  return extraX;
+}
+function buildHeuristicSeed(patterns, demand, stockCost, lpX, timeBudgetMs) {
+  const numPat = patterns.length;
+  const n = demand.length;
+  const base = lpX.map(v => Math.floor(v + 1e-7));
+  const used = new Array(n).fill(0);
+  for (let p = 0; p < numPat; p++) {
+    if (base[p] > 0) patterns[p].counts.forEach((cnt, i) => { used[i] += cnt * base[p]; });
+  }
+  const residual = demand.map((d, i) => Math.max(0, d - used[i]));
+  const residualTotal = residual.reduce((a, b) => a + b, 0);
+  let extraX = new Array(numPat).fill(0);
+  if (residualTotal > 0) {
+    const subBudget = Math.max(200, Math.min(1500, timeBudgetMs));
+    const subBB = solveILP_BranchAndBound(patterns, residual, stockCost, subBudget);
+    extraX = subBB.feasible ? subBB.x : greedyCoverResidual(patterns, residual);
+  }
+  const x = base.map((v, p) => v + (extraX[p] || 0));
+
+  // Verify the seed actually covers full demand before trusting it. The
+  // greedy singleton fallback above can silently fail to cover some
+  // lengths (e.g. within a zero-waste-only pattern pool, where no
+  // single-piece-fills-the-bar-exactly pattern exists for most lengths),
+  // which would otherwise hand back an artificially cheap "solution" that
+  // is actually infeasible - understating cost by exactly the value of
+  // whatever pieces got silently dropped. A seed is only useful as a
+  // pruning bound if it's a genuinely feasible integer solution; an
+  // unchecked infeasible seed can look CHEAPER than the true optimum,
+  // which would make branch-and-bound prune away the real answer at the
+  // root before ever searching for it. Returning null here (rather than a
+  // broken seed) tells every caller to fall back to an unseeded search -
+  // slower, but correct.
+  const supplied = new Array(n).fill(0);
+  for (let p = 0; p < numPat; p++) {
+    if (x[p] > 0) patterns[p].counts.forEach((cnt, i) => { supplied[i] += cnt * x[p]; });
+  }
+  for (let i = 0; i < n; i++) {
+    if (supplied[i] < demand[i] - 1e-6) return null;
+  }
+
+  const c = patterns.map(p => stockCost[p.stockIdx]);
+  let obj = 0;
+  for (let p = 0; p < numPat; p++) obj += c[p] * x[p];
+  return { x, obj };
+}
+
+// ---- Exact-fit ("zero waste") pattern search ----
+// Finds several DIFFERENT zero-waste ways to fill a stock bar - not just
+// whether one exists. Enumerated via backtracking (largest piece first,
+// smallest counts first - see the comment inline below), pruned by a
+// precomputed reachability table so only branches that can actually
+// succeed get explored, keeping the search fast even though it's
+// exhaustive within its result cap.
+function findExactFitPatterns(capacity, lens, maxCounts, maxResults, deadline) {
+  const n = lens.length;
+  const order = lens.map((l, i) => i).sort((a, b) => lens[b] - lens[a]);
+  // reach[k] = Uint8Array over sums 0..capacity, true if piece types
+  // order[k..n-1] can hit that sum exactly using between 0 and
+  // maxCounts[order[k]] of each. Built bottom-up once per stock.
+  const reach = new Array(n + 1);
+  reach[n] = new Uint8Array(capacity + 1); reach[n][0] = 1;
+  for (let k = n - 1; k >= 0; k--) {
+    const i = order[k];
+    const prev = reach[k + 1];
+    const cur = new Uint8Array(capacity + 1);
+    const len = lens[i];
+    for (let w = 0; w <= capacity; w++) {
+      if (!prev[w]) continue;
+      const maxC = len > 0 ? Math.min(maxCounts[i], Math.floor((capacity - w) / len)) : 0;
+      for (let c = 0; c <= maxC; c++) cur[w + c * len] = 1;
+      if (len === 0) cur[w] = 1;
+    }
+    reach[k] = cur;
+  }
+  if (!reach[0][capacity]) return [];
+
+  const results = [];
+  const counts = new Array(n).fill(0);
+  function backtrack(k, remaining) {
+    if (results.length >= maxResults) return;
+    if (deadline && Date.now() > deadline) return;
+    if (remaining === 0) { results.push(counts.slice()); return; }
+    if (k === n) return;
+    const i = order[k];
+    const len = lens[i];
+    const maxC = len > 0 ? Math.min(maxCounts[i], Math.floor(remaining / len)) : 0;
+    // Trying LARGE counts of each (large-to-small-ordered) piece type
+    // first, rather than skipping straight past the biggest piece to
+    // explore combinations of smaller ones, surfaces "clean", few-piece
+    // patterns (the realistic, commonly-used cutting patterns) within the
+    // first handful of results per stock length. The original ordering
+    // (small counts first) was found to spend most of a stock length's
+    // pattern budget on many-small-piece variants that never touch the
+    // largest available piece at all - starving out the simpler, more
+    // useful patterns before the per-stock result cap was even reached.
+    for (let c = maxC; c >= 0; c--) {
+      if (results.length >= maxResults) return;
+      const rest = remaining - c * len;
+      if (!reach[k + 1][rest]) continue; // this choice can never reach zero waste - skip
+      counts[i] = c;
+      backtrack(k + 1, rest);
+      counts[i] = 0;
+    }
+  }
+  backtrack(0, capacity);
+  return results;
+}
+
+// ---- Dedicated zero-waste solve: tried BEFORE falling back to the
+// general column-generation pool ----
+// Column generation's pattern pool is tuned to prove the LP relaxation is
+// optimal, using as few columns as it can get away with - it stops adding
+// a pattern the moment nothing would improve the fractional objective
+// further. That's the right stopping rule for the LP, but it means
+// genuinely useful zero-waste patterns can be left out simply because
+// they TIE (rather than beat) whatever's already in the pool. Mixing
+// hundreds of extra zero-waste patterns straight into the same pool that
+// feeds branch-and-bound was tried and made things WORSE - more columns
+// means a fatter search tree, not a smarter one.
+//
+// This tries a narrower, better-behaved question instead: using ONLY
+// patterns that fill their bar with exactly zero waste, can the ENTIRE cut
+// list be met? That restricted problem's own LP relaxation is usually far
+// less degenerate than the general one (every column is already "on
+// target"), and in practice resolves to an integer answer in a handful of
+// branch-and-bound nodes rather than thousands. The result is trusted as
+// the FINAL answer only if its cost exactly matches the general problem's
+// own LP lower bound - a mathematical proof of global optimality (a lower
+// bound is a lower bound regardless of which pattern set achieves it), not
+// a guess. If the zero-waste-only problem is infeasible, times out, or
+// lands above that bound (real cut lists often can't be tiled with zero
+// waste at all), this returns null and the caller falls back to the
+// general solver.
+// ---- Canonicalize pattern order before branch-and-bound ----
+// Column generation's pattern list is built by iterating stock lengths in
+// whatever order the caller's array happens to be in, and each new pattern
+// found during pricing gets appended in discovery order - so the pattern
+// array's index order is an accident of input order, not anything
+// meaningful about the problem itself. That accident matters because
+// branch-and-bound's "most fractional" variable selection breaks ties by
+// picking whichever pattern comes FIRST in the array - so under a fixed
+// time budget (where the search can't fully prove optimality and has to
+// stop wherever it's gotten to), simply listing the SAME available stock
+// lengths in a different order silently changes which branch gets
+// explored first, and therefore which near-optimal answer comes back.
+// Observed directly: re-running the identical cut list against the
+// identical stock lengths, only reordered, swung the reported waste from
+// under 0.2% to over 1%. Sorting patterns into a fixed canonical order
+// (by stock length, then by piece-count signature) before B&B runs makes
+// its tie-breaking depend only on the actual problem, not on which order
+// stock lengths were typed into the form - so the same available lengths
+// always converge to the same answer regardless of input order.
+function canonicalizePatternOrder(patterns, stockLensM, x) {
+  const idxs = patterns.map((p, i) => i);
+  idxs.sort((a, b) => {
+    const Sa = stockLensM[patterns[a].stockIdx], Sb = stockLensM[patterns[b].stockIdx];
+    if (Sb !== Sa) return Sb - Sa; // longer stock first
+    const ka = patterns[a].counts.join(',');
+    const kb = patterns[b].counts.join(',');
+    return ka < kb ? -1 : ka > kb ? 1 : 0;
+  });
+  const newPatterns = idxs.map(i => patterns[i]);
+  const newX = x ? idxs.map(i => x[i]) : undefined;
+  return { patterns: newPatterns, x: newX };
+}
+
+// Small deterministic PRNG (mulberry32) used purely to make the
+// degeneracy-breaking cost perturbation below reproducible run-to-run for
+// the same input - not for any security or statistical purpose.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function tryZeroWasteSolve(distinctLens, demand, stockLens, stockCost, lpBoundObj, timeBudgetMs) {
+  // Previously hard-clamped to a maximum of 6 seconds regardless of how
+  // much time the caller actually budgeted - fine for small cut lists, but
+  // for large ones (dozens of distinct lengths -> thousands of candidate
+  // zero-waste patterns), 6s is nowhere near enough for branch-and-bound
+  // to search or prove anything once it can no longer rely on a
+  // (possibly infeasible - see buildHeuristicSeed's coverage check) seed.
+  // Now honors the caller's real budget directly - computeBestCore already
+  // sizes that budget sensibly relative to the overall solve deadline, so
+  // there is no need for a second, independent cap here.
+  const deadline = Date.now() + Math.max(300, timeBudgetMs);
+  const MAX_PATTERNS = 4000;
+  let allExact = [];
+  for (let s = 0; s < stockLens.length; s++) {
+    if (Date.now() > deadline || allExact.length >= MAX_PATTERNS) break;
+    const maxCounts = distinctLens.map((l, i) => Math.min(demand[i], Math.floor(stockLens[s] / l)));
+    if (maxCounts.every(m => m === 0)) continue;
+    const stocksRemaining = stockLens.length - s; // includes this one
+    const budgetLeft = MAX_PATTERNS - allExact.length;
+    const fairShare = Math.max(1, Math.ceil(budgetLeft / stocksRemaining));
+    const matches = findExactFitPatterns(stockLens[s], distinctLens, maxCounts, fairShare, deadline);
+    matches.forEach(counts => allExact.push({ stockIdx: s, counts }));
+  }
+  if (allExact.length === 0) return null;
+  ({ patterns: allExact } = canonicalizePatternOrder(allExact, stockLens));
+
+  const c = allExact.map(p => stockCost[p.stockIdx]);
+  const A = [];
+  for (let i = 0; i < distinctLens.length; i++) A.push(allExact.map(p => p.counts[i]));
+  const lp2 = solveLPGE(c, A, demand);
+  if (!lp2.feasible) return null;
+  if (Math.abs(lp2.obj - lpBoundObj) > 1e-4) return null; // no zero-waste tiling reaches the true optimum
+
+  // Independent, from-scratch feasibility check used by every attempt
+  // below (both the direct seeded B&B and every perturbation restart) -
+  // never trust an integer vector just because it came out of a solver;
+  // confirm it actually supplies at least the full demand for every
+  // length. This is what caught the silent under-coverage bug in
+  // buildHeuristicSeed's residual fallback.
+  function trueCoverage(x) {
+    const supplied = new Array(distinctLens.length).fill(0);
+    x.forEach((v, idx) => { if (v > 0) allExact[idx].counts.forEach((cnt, i) => { supplied[i] += cnt * v; }); });
+    return demand.every((d, i) => supplied[i] >= d - 1e-6);
+  }
+  function trueCost(x) {
+    let obj = 0;
+    x.forEach((v, idx) => { if (v > 0) obj += c[idx] * v; });
+    return obj;
+  }
+  function pieceCount(p) { return p.counts.reduce((a, b) => a + b, 0); }
+
+  // ---- Attempt 1: direct seeded branch-and-bound on the unperturbed LP
+  // vertex. Cheap and often sufficient when the zero-waste pattern pool
+  // isn't badly degenerate (e.g. real prices are entered, which breaks
+  // ties between patterns naturally). Deliberately capped to a SMALL
+  // fixed slice of the budget, not "whatever's left" - when the pool IS
+  // degenerate (the common case with no prices entered), an unseeded or
+  // badly-seeded B&B here will happily spend the ENTIRE remaining
+  // deadline searching a tree it was never going to solve, leaving
+  // nothing for attempt 2 below - which is the technique that actually
+  // works on degenerate pools. Fail fast here; let attempt 2 have the
+  // real time budget.
+  {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs > 0) {
+      const attempt1Budget = Math.min(5000, remainingMs);
+      const seed = buildHeuristicSeed(allExact, demand, stockCost, lp2.x, Math.min(1500, attempt1Budget));
+      const bb2 = solveILP_BranchAndBound(allExact, demand, stockCost, attempt1Budget, seed);
+      if (bb2.feasible && trueCoverage(bb2.x)) {
+        const cost = trueCost(bb2.x);
+        if (Math.abs(cost - lpBoundObj) < 1e-4) {
+          return { feasible: true, provenOptimal: true, patterns: allExact, x: bb2.x, obj: cost };
+        }
+      }
+    }
+  }
+
+  // ---- Attempt 2: degeneracy-breaking cost perturbation ----
+  // When no prices are entered, every exact-fit (zero-waste) pattern costs
+  // exactly its own stock length - so the LP's true objective is IDENTICAL
+  // across every possible zero-waste tiling, and every column has a
+  // reduced cost of exactly zero. Simplex then has no numerical signal for
+  // which of the (possibly thousands of) tied patterns to prefer, which is
+  // why attempt 1 above can fail even though a zero-waste tiling
+  // genuinely exists: the LP vertex it happens to land on may not be one
+  // that floors to a completable integer solution.
+  //
+  // The fix (standard practice for degenerate LPs): solve the SAME
+  // feasible region under tiny, pattern-specific cost perturbations. This
+  // can never change which cost is truly optimal (the perturbations are
+  // minuscule relative to real stock costs - hundreds to thousands of
+  // cents), but it breaks the tie deterministically per restart, pushing
+  // simplex toward a different extreme point each time. Each restart also
+  // gently biases toward patterns using FEWER pieces (simpler, more
+  // typical real-world cutting patterns) and, once a few restarts have
+  // succeeded, biases further toward patterns that keep recurring in
+  // successful attempts (a cheap proxy for "structurally good" patterns,
+  // which empirically nudges later restarts toward fewer distinct
+  // patterns overall - real procurement/shop-floor simplicity, not just a
+  // synthetic score).
+  //
+  // Every candidate this loop produces is independently re-verified via
+  // trueCoverage()/trueCost() before being trusted - a perturbed LP vertex
+  // is just a candidate, never assumed correct.
+  let best = null; // { x, cost, bars, distinctPatterns }
+  const patternUseCount = new Array(allExact.length).fill(0);
+  let trial = 0;
+  let trialsSinceImprovement = 0;
+  const MAX_TRIALS = 400; // hard ceiling regardless of remaining time - diminishing returns observed well before this in practice
+  // Once a genuine zero-waste match is found, keep searching only a
+  // BOUNDED number of further restarts looking for a better bar count
+  // (see the "fewest bars" tie-break below) rather than running the
+  // entire remaining deadline every time - a cut list this size can have
+  // dozens of candidate stock-length subsets to check (see
+  // simplifyStockLengths above), and letting every single one, success or
+  // failure, consume its FULL time budget makes that outer search
+  // impractically slow. A first success is usually found within the
+  // first few restarts (observed directly on real cut lists), so 60
+  // "polish" restarts after that point is generous without being
+  // unbounded.
+  const MAX_POLISH_TRIALS_AFTER_SUCCESS = 10;
+  while (Date.now() < deadline && trial < MAX_TRIALS) {
+    trial++;
+    const rng = mulberry32((trial * 2654435761) ^ 0x9E3779B9);
+    const usePopularityBias = trial > 60 && best; // let a first batch establish usage stats before reinforcing
+    const maxUse = usePopularityBias ? Math.max(...patternUseCount, 1) : 1;
+    const cPerturbed = allExact.map((p, idx) => {
+      const base = c[idx];
+      const pieceBias = (pieceCount(p) - 1) * (usePopularityBias ? 0.5 : 2.0);
+      const popularityBias = usePopularityBias ? -(patternUseCount[idx] / maxUse) * 6.0 : 0;
+      const jitter = rng() * 0.5;
+      return base + pieceBias + popularityBias + jitter;
+    });
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+    const lpP = solveLPGE(cPerturbed, A, demand, deadline);
+    if (!lpP.feasible) continue;
+
+    const baseX = lpP.x.map(v => Math.floor(v + 1e-7));
+    const used = new Array(demand.length).fill(0);
+    allExact.forEach((p, idx) => { if (baseX[idx] > 0) p.counts.forEach((cnt, i) => { used[i] += cnt * baseX[idx]; }); });
+    const residual = demand.map((d, i) => Math.max(0, d - used[i]));
+    const residualTotal = residual.reduce((a, b) => a + b, 0);
+
+    let x = baseX.slice();
+    if (residualTotal > 0) {
+      const subBudget = Math.max(200, Math.min(800, deadline - Date.now()));
+      if (subBudget <= 0) break;
+      const subBB = solveILP_BranchAndBound(allExact, residual, stockCost, subBudget, null);
+      if (!subBB.feasible) continue;
+      x = baseX.map((v, idx) => v + (subBB.x[idx] || 0));
+    }
+
+    if (!trueCoverage(x)) continue; // reject silently-incomplete candidates rather than trust them
+    const cost = trueCost(x);
+    if (Math.abs(cost - lpBoundObj) > 1e-4) continue; // this vertex's integer rounding overshot the true floor - discard
+
+    x.forEach((v, idx) => { if (v > 0) patternUseCount[idx]++; });
+    const bars = x.reduce((a, v) => a + v, 0);
+    const distinctPatterns = x.filter(v => v > 0).length;
+    if (!best || bars < best.bars || (bars === best.bars && distinctPatterns < best.distinctPatterns)) {
+      best = { x, cost, bars, distinctPatterns };
+      trialsSinceImprovement = 0;
+    } else {
+      trialsSinceImprovement++;
+    }
+    if (best && trialsSinceImprovement >= MAX_POLISH_TRIALS_AFTER_SUCCESS) break;
+  }
+
+  if (best) return { feasible: true, provenOptimal: true, patterns: allExact, x: best.x, obj: best.cost };
+  return null;
+}
+// ---- Trim any oversupply down to genuine reported waste ----
+// The master LP is built as "Ax >= b" (at least this many of each piece),
+// not "Ax = b" - which is the right formulation for the SOLVE (it lets a
+// bar get fully used even when its exact fit slightly overshoots what's
+// left to cut), but left alone it can silently under-report waste: if the
+// cheapest way to finish demand is a bar that produces a couple more
+// pieces of some length than are actually needed, that surplus was being
+// counted as "fulfilled pieces" with the bar shown as perfectly efficient
+// (zero waste) - even though those extra pieces weren't asked for and
+// materially represent the same leftover length as an offcut would. The
+// total stock purchased doesn't change either way (the bar was going to be
+// bought regardless), but which number that leftover length shows up under
+// does: reported as waste, it correctly reflects material bought beyond
+// what was needed; folded silently into "fulfilled," it understates the
+// plan's true efficiency. This peels any such surplus back off the
+// patterns that produced it, one piece at a time, converting it into
+// genuine waste on that specific bar instead - so the piece counts shown
+// never exceed what was actually asked for, and the waste% the person
+// sees always reflects the true picture.
+function trimSurplusToWaste(patterns, distinctLensM, demand) {
+  const n = distinctLensM.length;
+  const supplied = new Array(n).fill(0);
+  patterns.forEach(p => {
+    distinctLensM.forEach((lenM, i) => { supplied[i] += (p.fill[lenM] || 0) * p.count; });
+  });
+
+  // Work on a mutable copy; merge identical resulting patterns back
+  // together via a key so trimming many small excesses doesn't bloat the
+  // displayed pattern list with near-duplicate single-bar rows.
+  let working = patterns.map(p => ({ S: p.S, fill: { ...p.fill }, waste: p.waste, count: p.count }));
+  function mergeKey(p) {
+    const fillKey = distinctLensM.map(l => p.fill[l] || 0).join(',');
+    return p.S + '|' + fillKey + '|' + r3(p.waste);
+  }
+
+  for (let i = 0; i < n; i++) {
+    let excess = supplied[i] - demand[i];
+    if (excess <= 0) continue;
+    const lenM = distinctLensM[i];
+    for (let iter = 0; iter < excess; iter++) {
+      const idx = working.findIndex(p => (p.fill[lenM] || 0) > 0);
+      if (idx === -1) break; // shouldn't happen given supplied[i] > demand[i]
+      const src = working[idx];
+      // Peel one bar off this pattern with one fewer copy of lenM, and the
+      // freed-up length now counted as waste on that single bar.
+      const newFill = { ...src.fill };
+      newFill[lenM] -= 1;
+      if (newFill[lenM] === 0) delete newFill[lenM];
+      const newWaste = src.waste + lenM;
+      const splitOff = { S: src.S, fill: newFill, waste: newWaste, count: 1 };
+      src.count -= 1;
+      if (src.count === 0) working.splice(idx, 1);
+      working.push(splitOff);
+    }
+  }
+
+  // Consolidate identical rows.
+  const merged = new Map();
+  working.forEach(p => {
+    const k = mergeKey(p);
+    if (merged.has(k)) merged.get(k).count += p.count;
+    else merged.set(k, { S: p.S, fill: p.fill, waste: p.waste, count: p.count });
+  });
+  return Array.from(merged.values()).filter(p => p.count > 0);
+}
+
+// ---- Glue: builds the SAME output shape the rest of this tool's rendering
+// and CSV export code already expects ({patterns:[{S,fill,waste,count}],
+// unfulfilled}), plus a few extra fields (solved, provenOptimal, gap info)
+// used by runCalculation() below for the "how close to the theoretical
+// best" messaging. ----
+function computeBestCore(required, stockLensM, stockPrices, hasPrices, _depth, _overallDeadline){
+  _depth = _depth || 0;
+  // Overall wall-clock ceiling for the ENTIRE solve, including every
+  // recursive self-restriction refinement branch below. Raised from the
+  // original 20s so that large, real-world cut lists (dozens of distinct
+  // lengths, hundreds to low thousands of pieces) get a genuine shot at a
+  // proven-optimal answer rather than settling early - the person using
+  // this tool has explicitly said a wait of up to ~2 minutes is fine for
+  // that size of problem. Every nested budget below is clamped against
+  // this same deadline (see the `budget` clamp just below), so raising it
+  // here is the one place that controls the true worst-case wait.
+  // Raised alongside the zero-waste degeneracy-breaking search (see
+  // tryZeroWasteSolve): a large, price-degenerate cut list can now
+  // legitimately spend tens of seconds on perturbation restarts trying to
+  // find a genuine zero-waste tiling before ever reaching the general
+  // fallback, so the overall ceiling needs enough room for both phases
+  // plus the simplify pass below to run in full on large inputs.
+  _overallDeadline = _overallDeadline || (Date.now() + 150000);
+  const maxStock = Math.max(...stockLensM);
+
+  // Anything longer than every available stock length can never be cut,
+  // regardless of algorithm - pull it out up front.
+  const unfulfilled = {};
+  const feasible = [];
+  required.forEach(r => {
+    if (r.len > maxStock + EPS) unfulfilled[r.len] = (unfulfilled[r.len]||0) + r.qty;
+    else feasible.push(r);
+  });
+
+  if (feasible.length === 0) return {patterns: [], unfulfilled, solved:true, provenOptimal:true};
+
+  const qtyByLen = {};
+  feasible.forEach(r => { qtyByLen[r.len] = (qtyByLen[r.len]||0) + r.qty; });
+  const distinctLensM = Object.keys(qtyByLen).map(Number);
+  const demand = distinctLensM.map(l => qtyByLen[l]);
+  const distinctLens = distinctLensM.map(toCents);
+  const stockLens = stockLensM.map(toCents);
+  const stockCost = stockLensM.map(s => (hasPrices && stockPrices[s] !== null && stockPrices[s] !== undefined) ? stockPrices[s] : toCents(s));
+
+  const lp = solveCuttingStockLP(distinctLens, demand, stockLens, stockCost);
+  if (!lp.feasible) return {patterns: [], unfulfilled, solved:false, provenOptimal:false};
+  {
+    const canon = canonicalizePatternOrder(lp.patterns, stockLensM, lp.x);
+    lp.patterns = canon.patterns;
+    lp.x = canon.x;
+  }
+
+  // Time budget scales gently with problem size, capped for browser
+  // responsiveness. Small/typical cut lists finish in well under this (the
+  // recursion returns as soon as the search tree is exhausted, not once the
+  // budget is used up) - the cap only matters for unusually large inputs.
+  const totalPieces = demand.reduce((a,b)=>a+b, 0);
+  // Scaled up considerably from the original 6s cap: a cut list with dozens
+  // of distinct lengths and a thousand-plus pieces needs real search time to
+  // reach (or get provably close to) the true optimum, not just a fast
+  // approximate pass. Whatever this formula suggests is then clamped to
+  // whatever's actually left on the shared _overallDeadline, so a deep
+  // refinement branch can never overshoot the total time budget promised to
+  // the person - it just gets whatever's left, even if that's less than
+  // this nominal number.
+  let budget = Math.min(70000, 2000 + totalPieces*30 + lp.patterns.length*50);
+  budget = Math.min(budget, Math.max(500, _overallDeadline - Date.now()));
+
+  // Try the dedicated zero-waste path first (see tryZeroWasteSolve above);
+  // only fall back to the general column-generation pool + heuristic-seeded
+  // branch-and-bound if a perfect tiling isn't achievable or provable in
+  // time.
+  let patternsForBB = lp.patterns;
+  const zeroWasteAttemptStart = Date.now();
+  let bb = tryZeroWasteSolve(distinctLens, demand, stockLens, stockCost, lp.obj, budget);
+  if (bb) {
+    patternsForBB = bb.patterns;
+  } else {
+    // Give the general fallback whatever's ACTUALLY left of this solve's
+    // budget, not the same original nominal figure again - the zero-waste
+    // attempt above can genuinely use a large chunk of it now that it's
+    // allowed a real search window, and re-granting the full original
+    // amount here would let a single computeBestCore call silently run for
+    // roughly double its intended budget.
+    const remainingBudget = Math.max(500, budget - (Date.now() - zeroWasteAttemptStart));
+    const seed = buildHeuristicSeed(lp.patterns, demand, stockCost, lp.x, Math.min(1500, remainingBudget));
+    bb = solveILP_BranchAndBound(lp.patterns, demand, stockCost, remainingBudget, seed);
+  }
+  if (!bb.feasible) return {patterns: [], unfulfilled, solved:false, provenOptimal:false};
+
+  const patterns = trimSurplusToWaste(
+    (() => {
+      const raw = [];
+      patternsForBB.forEach((p, idx) => {
+        const count = bb.x[idx];
+        if (count > 0) {
+          const fill = {};
+          let usedLen = 0;
+          p.counts.forEach((cnt, i) => {
+            if (cnt > 0) { fill[distinctLensM[i]] = cnt; usedLen += cnt * distinctLens[i]; }
+          });
+          const S = stockLensM[p.stockIdx];
+          const waste = S - usedLen / 100;
+          raw.push({ S, fill, waste, count });
+        }
+      });
+      return raw;
+    })(),
+    distinctLensM, demand
+  );
+
+  let solutionCost = 0;
+  patternsForBB.forEach((p, idx) => { solutionCost += stockCost[p.stockIdx] * bb.x[idx]; });
+  const gapPct = lp.obj > EPS ? Math.max(0, (solutionCost - lp.obj) / lp.obj * 100) : 0;
+  const provenOptimal = (bb.provenOptimal !== undefined) ? bb.provenOptimal : true;
+
+  let result = {patterns, unfulfilled, solved:true, provenOptimal, lpBoundCost: lp.obj, solutionCost, gapPct};
+
+  // Self-restriction refinement: an unproven (timed-out) search over MORE
+  // stock length options can end up worse than the same search would be
+  // over FEWER, because every extra stock length contributes extra
+  // candidate patterns that dilute and slow down branch-and-bound - and
+  // that dilution can hurt even when the extra length ends up genuinely
+  // useful, just lightly so (a bar or two out of hundreds), while making
+  // the overall search worse off than if it had never been offered. "Don't
+  // use it" (or "barely use it") was always a valid choice, so a slower
+  // search over a bigger pool settling for worse before proving it is a
+  // real, observed failure mode - not just for lengths that end up wholly
+  // unused, but for ones the search leaned on only marginally. This tries
+  // re-running with a SMALLER stock set whenever the search wasn't proven
+  // optimal: first the exact subset of lengths actually chosen (if that's
+  // already fewer than it was given), and then, separately, with each
+  // LIGHTLY-used length (at most a small share of total bars) dropped one
+  // at a time - since each candidate is strictly the same problem with a
+  // smaller, faster-to-search pool, it can only match or beat the
+  // original, never lose to it, so only strictly-better results are ever
+  // adopted. Bounded to a few rounds, a small number of candidates, and an
+  // overall wall-clock deadline shared across the whole refinement tree
+  // (each round strictly shrinks the stock set, so this can't loop
+  // indefinitely, but the deadline keeps worst-case latency predictable
+  // regardless of how many candidates end up worth trying) and skipped
+  // once already proven optimal, since there's nothing left to gain.
+  if (!provenOptimal && _depth < 3 && stockLensM.length > 1 && Date.now() < _overallDeadline) {
+    const usedLens = Array.from(new Set(patterns.map(p => p.S)));
+    const candidates = [];
+    if (usedLens.length > 0 && usedLens.length < stockLensM.length) candidates.push(usedLens);
+
+    const barsByLen = {};
+    patterns.forEach(p => { barsByLen[p.S] = (barsByLen[p.S] || 0) + p.count; });
+    const totalBars = patterns.reduce((a, p) => a + p.count, 0);
+    const lightUseThreshold = Math.max(1, Math.round(totalBars * 0.03));
+    const lightlyUsed = stockLensM
+      .filter(s => (barsByLen[s] || 0) > 0 && barsByLen[s] <= lightUseThreshold)
+      .sort((a, b) => (barsByLen[a] || 0) - (barsByLen[b] || 0))
+      .slice(0, 2); // cap how many extra full re-solves this can trigger
+    lightlyUsed.forEach(s => candidates.push(stockLensM.filter(x => x !== s)));
+
+    for (const cand of candidates) {
+      if (Date.now() >= _overallDeadline) break; // shared time budget across the whole refinement tree
+      const refined = computeBestCore(required, cand, stockPrices, hasPrices, _depth + 1, _overallDeadline);
+      if (refined.solved && refined.patterns.length > 0 && refined.solutionCost < result.solutionCost - 1e-6) {
+        const refinedGapPct = lp.obj > EPS ? Math.max(0, (refined.solutionCost - lp.obj) / lp.obj * 100) : 0;
+        result = { patterns: refined.patterns, unfulfilled, solved:true,
+                   provenOptimal: refined.provenOptimal, lpBoundCost: lp.obj,
+                   solutionCost: refined.solutionCost, gapPct: refinedGapPct };
+      }
+    }
+  }
+
+  return result;
+}
+
+// After the main solver finds the true minimum cost, several different
+// combinations of stock lengths can often achieve that SAME cost - e.g. if
+// 9m and 10.5m bars can each cut a required length with zero/matching
+// waste, using 10 bars of 9m + 1 of 10.5m can cost exactly the same as some
+// other mix spread across 3 different stock lengths. Left alone, which of
+// those tied plans comes back depends on solver internals invisible to
+// whoever is using the tool - but for real procurement, using fewer
+// distinct commercial lengths is a meaningful, visible preference (simpler
+// to order, easier to track on site, less room for mix-ups on delivery).
+// This checks increasingly small subsets of the entered stock lengths and,
+// the moment a subset reaches the SAME proven-optimal cost, adopts it - so
+// among equally-cheap plans, the tool prefers the one that asks the
+// supplier for fewer different bar sizes. It never trades away cost for
+// this: a subset is only adopted if its cost matches (never exceeds) the
+// full-set optimum.
+//
+// Bounded for performance: only attempted when the original solve was fast
+// enough to be PROVEN optimal (so the cost being matched against is a
+// trustworthy target) and the cut list isn't huge, since each candidate
+// subset requires a full re-solve. On larger inputs this step is skipped
+// entirely and the original (still cost-optimal) plan is kept as-is.
+const SIMPLIFY_LEN_LIMIT = 8;
+const SIMPLIFY_TRIAL_BUDGET = 60;
+// Raised from 3s/600pcs: the zero-waste perturbation search can genuinely
+// need real time on a large cut list, and simplifyStockLengths calls
+// computeBestCore fresh for every candidate subset - each one now capable
+// of running its own perturbation search. Bounded generously rather than
+// left unbounded, since the person has said a longer wait for a
+// genuinely simpler procurement list is an acceptable trade. Note this is
+// a best-effort exploration, not exhaustive, for very large/varied cut
+// lists: with dozens of distinct lengths, each candidate subset can
+// itself take upwards of 30s to resolve (success or failure), so this
+// budget realistically covers a handful of candidate subsets, not every
+// possible one - it will never make the result WORSE (a subset is only
+// adopted if it matches the proven cost), just not guaranteed to find the
+// most-simplified stock set possible in every case.
+const SIMPLIFY_TIME_BUDGET_MS = 240000;
+const SIMPLIFY_MAX_PIECES = 2000;
+
+function simplifyStockLengths(required, stockLensM, stockPrices, hasPrices, core){
+  const usedLens = Array.from(new Set(core.patterns.map(p => p.S)));
+  if (usedLens.length <= 1) return core; // already as simple as possible
+  if (!core.provenOptimal) return core; // don't chase ties against an unproven cost
+  if (stockLensM.length > SIMPLIFY_LEN_LIMIT) return core;
+  const totalPieces = required.reduce((a,r) => a + r.qty, 0);
+  if (totalPieces > SIMPLIFY_MAX_PIECES) return core;
+
+  const targetCost = core.solutionCost;
+  const simplifyStart = Date.now();
+  let trials = 0;
+
+  for (let size = 1; size < usedLens.length; size++) {
+    const n = stockLensM.length;
+    const subsets = [];
+    (function combos(start, chosen){
+      if (chosen.length === size) { subsets.push(chosen.slice()); return; }
+      for (let i = start; i < n; i++) { chosen.push(stockLensM[i]); combos(i+1, chosen); chosen.pop(); }
+    })(0, []);
+
+    // Try subsets favoring the LARGEST available stock lengths first.
+    // Empirically (on real cut lists), zero-waste tilings are more often
+    // achievable when the smallest stock lengths are the ones dropped -
+    // larger stock gives more combinations of pieces room to sum exactly
+    // to it. Each subset check can cost real time (the zero-waste search
+    // now does genuine work per subset - see tryZeroWasteSolve), so
+    // trying the more-likely-to-succeed subsets first matters far more
+    // than it did when this was a fast, cheap check.
+    subsets.sort((a, b) => b.reduce((x, y) => x + y, 0) - a.reduce((x, y) => x + y, 0));
+
+    let best = null;
+    for (const subset of subsets) {
+      if (trials++ >= SIMPLIFY_TRIAL_BUDGET) break;
+      if (Date.now() - simplifyStart > SIMPLIFY_TIME_BUDGET_MS) return core;
+
+      const trial = computeBestCore(required, subset, stockPrices, hasPrices, 0, simplifyStart + SIMPLIFY_TIME_BUDGET_MS);
+      if (!trial.solved) continue;
+      if (Object.keys(trial.unfulfilled).length > 0) continue; // this subset can't cut everything
+      if (!trial.provenOptimal) continue; // can't trust the comparison otherwise
+      if (trial.solutionCost <= targetCost + 1e-6) {
+        const bars = trial.patterns.reduce((a,p) => a + p.count, 0);
+        if (!best || bars < best.bars) best = { trial, bars };
+        break; // first success at this size is enough - move on rather than exhaustively comparing every same-size subset (each check costs real time; see tryZeroWasteSolve)
+      }
+    }
+    if (best) return best.trial; // smallest simplification found - stop, don't check larger sizes
+    if (trials >= SIMPLIFY_TRIAL_BUDGET) break;
+  }
+  return core;
+}
+
+// ---- Reuse the previous result when a removed stock length was never
+// used ----
+// If the person runs a calculation, sees some available stock length
+// never got used, and then removes exactly that length before recalculating,
+// the mathematically correct answer is simple: nothing has changed. A
+// solution that didn't touch the removed length is EXACTLY as valid and
+// EXACTLY as good for the smaller stock set - the removed option couldn't
+// have unlocked anything since the previous search already had access to
+// it and chose not to use it. Re-solving from scratch in that situation
+// doesn't just waste time; for large cut lists it re-exposes exactly the
+// branch-and-bound time-budget fragility (order sensitivity, pool
+// dilution) that a fresh solve is vulnerable to, for a case where none of
+// that machinery was even necessary. This checks for exactly that
+// situation - same required list, same prices on the lengths that remain,
+// and every removed length provably unused in the last result - and when
+// it holds, skips straight to returning the previous result instead of
+// resolving. Any other change (a different required list, a new stock
+// length added, a price changed, or removing a length that WAS used) falls
+// through to a full solve as normal.
+let lastCalcCache = null;
+function keyForRequired(required) {
+  return required.map(r => r.len + ':' + r.qty).slice().sort().join('|');
+}
+function computeBest(required, stockLensM, stockPrices, hasPrices){
+  const requiredKey = keyForRequired(required);
+
+  if (lastCalcCache && lastCalcCache.requiredKey === requiredKey && lastCalcCache.hasPrices === hasPrices) {
+    const prevStockSet = new Set(lastCalcCache.stockLensM);
+    const isSubset = stockLensM.every(s => prevStockSet.has(s));
+    if (isSubset) {
+      const curStockSet = new Set(stockLensM);
+      const removedLens = lastCalcCache.stockLensM.filter(s => !curStockSet.has(s));
+      const usedInPrev = new Set(lastCalcCache.result.patterns.map(p => p.S));
+      const allRemovedWereUnused = removedLens.every(s => !usedInPrev.has(s));
+      const pricesUnchanged = !hasPrices || stockLensM.every(s => lastCalcCache.stockPrices[s] === stockPrices[s]);
+      if (allRemovedWereUnused && pricesUnchanged) {
+        return lastCalcCache.result;
+      }
+    }
+  }
+
+  const core = computeBestCore(required, stockLensM, stockPrices, hasPrices);
+  const result = (!core.solved || core.patterns.length === 0)
+    ? core
+    : simplifyStockLengths(required, stockLensM, stockPrices, hasPrices, core);
+
+  lastCalcCache = {
+    requiredKey,
+    stockLensM: stockLensM.slice(),
+    stockPrices: Object.assign({}, stockPrices),
+    hasPrices,
+    result
+  };
+  return result;
+}
+
+
+function fmt(n, d=2){ return Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+// A fixed 1-decimal percentage rounds any waste below 0.05% down to "0.0%" -
+// which looks like zero waste even when the per-pattern breakdown clearly
+// shows real offcuts (e.g. 2m of waste out of 8,262m purchased is a real,
+// nonzero 0.0242%, not actually zero). This keeps 1 decimal for normal
+// values but adds more decimals only when needed to show the first
+// significant digit, so genuine waste is never displayed as flat "0.0%".
+function fmtPct(n){
+  if (!(n > 0)) return '0.0%';
+  let d = 1;
+  while (d < 4 && Number(n.toFixed(d)) === 0) d++;
+  return n.toFixed(d) + '%';
+}
+
+// Lengths carry up to 3 decimals of real precision (mm), but most entries
+// are whole meters or 2-decimal cm values - padding those with trailing
+// zeros ("7.500m", "6.000m") looks like false precision. This shows the
+// full 3 decimals only when the value actually needs them, and trims the
+// rest ("7.5m", "6m", "1.235m" stays "1.235m").
+function fmtLen(n){
+  let s = Number(n).toFixed(3);
+  if (s.indexOf('.') !== -1) {
+    s = s.replace(/0+$/,'').replace(/\.$/,'');
+  }
+  return s;
+}
+
+function calculate(){
+  const statusTag = document.getElementById('statusTag');
+  const resultsEl = document.getElementById('results');
+  const btn = document.getElementById('calcBtn');
+
+  // Show the loading state and disable the button BEFORE the heavy
+  // synchronous computation runs. JS is single-threaded, so simply setting
+  // this HTML and immediately calling the solver in the same tick would
+  // never actually paint the spinner - the browser can't repaint until the
+  // call stack is empty. Deferring the real work by one tick (setTimeout)
+  // lets the browser flush this paint first, so the spinner is genuinely
+  // visible for however long the solve takes, instead of the page just
+  // appearing to freeze with the old button still showing.
+  statusTag.textContent = 'CALCULATING…';
+  statusTag.classList.add('calculating');
+  if (btn) { btn.disabled = true; btn.textContent = 'Calculating…'; }
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `<div class="loading-box">
+      <div class="spinner"></div>
+      <div>Working out the cutting plan — small lists finish in seconds; large lists (dozens of lengths, hundreds/thousands of pieces) can take a few minutes while the solver searches for a genuine zero-waste plan and checks whether fewer commercial lengths can achieve the same cost.</div>
+    </div>`;
+
+  setTimeout(runCalculation, 30);
+}
+
+function runCalculation(){
+  const statusTag = document.getElementById('statusTag');
+  const btn = document.getElementById('calcBtn');
+  const resetButton = () => {
+    statusTag.classList.remove('calculating');
+    if (btn) { btn.disabled = false; btn.innerHTML = '&#9881; Calculate optimal cutting plan'; }
+  };
+
+  const reqEntered = reqRows.filter(r => r.len !== null || r.qty !== null); // rows the user actually touched
+  const required = reqEntered.filter(r => isValidPositive(r.len) && isValidPositive(r.qty));
+  const droppedReq = reqEntered.length - required.length;
+
+  const stockEntered = stockRows.filter(r => r.len !== null);
+  const stock = stockEntered.filter(r => isValidPositive(r.len));
+  const droppedStock = stockEntered.length - stock.length;
+
+  const stockLens = stock.map(s=>s.len);
+  const stockPrices = {};
+  let droppedPrices = 0;
+  stock.forEach(s=>{
+    // A negative or non-finite price isn't "no price" - it's bad data. Silently
+    // treating it as a real price would hand the solver a negative cost per
+    // bar, which skews the whole plan toward buying as much of that stock
+    // length as possible for no real-world reason. Treat it the same as a
+    // blank price (rank by meters/ignore) and flag it below.
+    const p = s.price;
+    if (p === null || p === undefined || isNaN(p)) {
+      stockPrices[s.len] = null;
+    } else if (p < 0) {
+      stockPrices[s.len] = null;
+      droppedPrices++;
+    } else {
+      stockPrices[s.len] = p;
+    }
+  });
+
+  const resultsEl = document.getElementById('results');
+  const footNote = document.getElementById('footNote');
+
+  if (required.length === 0 || stockLens.length === 0) {
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = `<div class="warn-box">Enter at least one required length/qty and at least one available commercial length.</div>`;
+    statusTag.textContent = 'INCOMPLETE INPUT';
+    resetButton();
+    return;
+  }
+
+  let invalidInputHtml = '';
+  if (droppedReq > 0 || droppedStock > 0 || droppedPrices > 0) {
+    const bits = [];
+    if (droppedReq > 0) bits.push(`${droppedReq} required-length row(s) with a zero, negative, or blank length/qty`);
+    if (droppedStock > 0) bits.push(`${droppedStock} stock-length row(s) with a zero, negative, or blank length`);
+    if (droppedPrices > 0) bits.push(`${droppedPrices} stock price(s) that were negative`);
+    invalidInputHtml = `<div class="warn-box">Ignored ${bits.join('; ')}. The affected row(s) are highlighted in red above.</div>`;
+  }
+  renderReq();
+  renderStock();
+
+  const hasPrices = stock.some(s => stockPrices[s.len] !== null);
+  const solveStart = Date.now();
+  const {patterns, unfulfilled, solved, provenOptimal, gapPct} = computeBest(required, stockLens, stockPrices, hasPrices);
+  const solveMs = Date.now() - solveStart;
+
+  if (solved === false) {
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = `<div class="warn-box">Could not find a feasible cutting plan for this combination of lengths and stock sizes. Try adding a longer or more varied stock length.</div>`;
+    statusTag.textContent = 'INFEASIBLE';
+    resetButton();
+    return;
+  }
+
+
+  // aggregate by stock length
+  const byStock = {};
+  let totalBars = 0, totalCost = 0, totalWaste = 0, totalLenPurchased = 0;
+  patterns.forEach(p => {
+    if (!byStock[p.S]) byStock[p.S] = {bars:0, cost:0};
+    const costPerBar = (stockPrices[p.S] !== null && stockPrices[p.S] !== undefined) ? stockPrices[p.S] : p.S;
+    byStock[p.S].bars += p.count;
+    byStock[p.S].cost += p.count * costPerBar;
+    totalBars += p.count;
+    totalCost += p.count * costPerBar;
+    totalWaste += p.count * p.waste;
+    totalLenPurchased += p.count * p.S;
+  });
+
+  const totalNeeded = required.reduce((s,r)=>s + r.len*r.qty, 0);
+  const wastePct = totalLenPurchased > EPS ? (totalWaste/totalLenPurchased*100) : 0;
+  const unfulfilledCount = Object.values(unfulfilled).reduce((a,b)=>a+b,0);
+
+  let html = '';
+
+  if (invalidInputHtml) {
+    html += invalidInputHtml;
+  }
+
+  if (unfulfilledCount > 0) {
+    const lens = Object.keys(unfulfilled).map(l=>`${fmtLen(+l)}m (${unfulfilled[l]} pcs)`).join(', ');
+    html += `<div class="warn-box"><strong>${unfulfilledCount} pcs cannot be cut</strong> - longer than every available commercial length: ${lens}. Add a longer stock length.</div>`;
+  }
+
+  html += `<div class="rec-box">&#10003; Recommended: ${totalBars} bar(s) total &mdash; ${hasPrices ? ('&#8369;'+fmt(totalCost)) : (fmt(totalLenPurchased)+' m purchased')}</div>`;
+
+  html += `<div class="kpi-grid">
+    <div class="kpi"><div class="num">${totalBars}</div><div class="lbl">Total bars to buy</div></div>
+    <div class="kpi"><div class="num">${fmt(totalNeeded)}</div><div class="lbl">Meters needed</div></div>
+    <div class="kpi"><div class="num">${fmt(totalLenPurchased)}</div><div class="lbl">Meters purchased</div></div>
+    <div class="kpi ${wastePct>15?'warn':''}"><div class="num">${fmtPct(wastePct)}</div><div class="lbl">Offcut / waste</div></div>
+  </div>`;
+
+  // stock chips
+  html += `<div class="stock-summary">`;
+  Object.keys(byStock).sort((a,b)=>b-a).forEach(s=>{
+    html += `<div class="stock-chip">
+      <div class="len">${fmtLen(+s)} m</div>
+      <div class="bars">${byStock[s].bars}<span style="font-size:11px;color:var(--steel-2);"> pcs</span></div>
+      <div class="cap">${hasPrices ? ('&#8369;'+fmt(byStock[s].cost)) : (fmt(byStock[s].bars*(+s))+' m')}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // cutting pattern summary
+  html += `<div class="panel"><div class="panel-head"><h2>Cutting Summary &mdash; how to cut each bar</h2></div><div class="panel-body">`;
+  html += `<div class="pattern-row head"><div>Stock</div><div>Cut into</div><div style="text-align:right;">Bars</div><div style="text-align:right;">Waste/bar</div></div>`;
+
+  const sortedPatterns = patterns.slice().sort((a,b)=> b.S - a.S || b.count - a.count);
+  sortedPatterns.forEach(p=>{
+    const pieceEntries = Object.entries(p.fill).sort((a,b)=>b[0]-a[0]);
+    const pieceText = pieceEntries.map(([l,c])=>`<span class="qty">${c}&times;</span>${fmtLen(+l)}m`).join(' + ');
+    const wasteClass = p.waste < 0.005 ? 'zero' : '';
+
+    // visual cut bar
+    let segs = '';
+    pieceEntries.forEach(([l,c],idx)=>{
+      const widthPct = (+l * c / p.S * 100);
+      const color = COLORS[idx % COLORS.length];
+      segs += `<div class="cutseg" style="width:${widthPct}%;background:${color};" title="${c}x ${fmtLen(+l)}m">${fmtLen(+l)}&times;${c}</div>`;
+    });
+    if (p.waste > 0.005) {
+      const wPct = (p.waste / p.S * 100);
+      segs += `<div class="cutseg waste-seg" style="width:${wPct}%;" title="Offcut ${fmtLen(p.waste)}m">${fmtLen(p.waste)}</div>`;
+    }
+
+    html += `<div class="pattern-row">
+        <div class="stock-pill">${fmtLen(+p.S)}m</div>
+        <div>
+          <div class="pieces">${pieceText}</div>
+          <div class="cutbar">${segs}</div>
+        </div>
+        <div class="barcount">${p.count}</div>
+        <div class="waste ${wasteClass}">${fmtLen(p.waste)} m</div>
+      </div>`;
+  });
+  html += `</div></div>`;
+
+  const calc = window.buttonExport = {
+    required, stock, hasPrices, byStock, patterns: sortedPatterns,
+    totalBars, totalCost, totalWaste, totalLenPurchased, totalNeeded, wastePct, unfulfilled
+  };
+
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = html + `<div class="row-actions" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="exportCSV()">&#8681; Export to Excel (.csv)</button>
+    </div>`;
+  statusTag.textContent = unfulfilledCount>0 ? 'INCOMPLETE' : (provenOptimal ? 'SOLVED' : 'SOLVED (NEAR-OPTIMAL)');
+  resetButton();
+
+  const solveSec = solveMs / 1000;
+  const solveTimeStr = solveSec < 1
+    ? `${solveMs} ms`
+    : `${solveSec.toFixed(solveSec < 10 ? 2 : 1)} s`;
+
+  footNote.innerHTML = (hasPrices
+    ? 'Cost = the bar prices you entered. The plan is solved to minimize total peso cost across the whole cut list, not just cost for one bar at a time.'
+    : 'No prices entered - ranked by total meters purchased (cheapest assumption: price is proportional to length). Enter real bar prices above for a peso-based comparison.'
+    ) + ' Solved with linear-programming pattern generation plus branch-and-bound (the standard industrial method for cutting-stock problems), so it scales to many distinct lengths and large quantities instead of a single left-to-right pass.'
+    + (provenOptimal
+        ? ' This plan is mathematically proven optimal - no cheaper combination exists.'
+        : ` This cut list was large enough that the solver used its full time budget (which can run to several minutes for very large or highly-tied lists, including a pass checking whether fewer commercial lengths could reach the same cost); the plan found is within ${gapPct < 0.01 ? '0.01' : gapPct.toFixed(2)}% of the mathematically proven best-possible cost, i.e. effectively optimal for procurement purposes.`)
+    + ` Solve time: ${solveTimeStr}.`;
+}
+
+function csvEscape(v){
+  const s = String(v);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g,'""') + '"';
+  }
+  return s;
+}
+
+function exportCSV(){
+  const d = window.buttonExport;
+  if (!d) return;
+  const rows = [];
+  rows.push(['REBAR CUTTING OPTIMIZER - RESULTS']);
+  rows.push([]);
+  rows.push(['Required Cut List']);
+  rows.push(['Length (m)','Qty (pcs)']);
+  d.required.forEach(r=>rows.push([r.len, r.qty]));
+  rows.push([]);
+  rows.push(['Available Commercial Lengths']);
+  rows.push(['Stock Length (m)','Price per Bar']);
+  d.stock.forEach(s=>rows.push([s.len, s.price ?? '']));
+  rows.push([]);
+  rows.push(['Summary']);
+  rows.push(['Total bars to buy', d.totalBars]);
+  rows.push(['Meters needed', fmtLen(d.totalNeeded)]);
+  rows.push(['Meters purchased', fmtLen(d.totalLenPurchased)]);
+  rows.push(['Waste / offcut %', fmtPct(d.wastePct)]);
+  rows.push(['Total cost / value', d.hasPrices ? d.totalCost.toFixed(2) : (fmtLen(d.totalLenPurchased)+' m (no prices entered)')]);
+  rows.push([]);
+  rows.push(['Bars to buy per commercial length']);
+  rows.push(['Stock Length (m)','Bars','Cost / Meters']);
+  Object.keys(d.byStock).sort((a,b)=>b-a).forEach(s=>{
+    rows.push([fmtLen(+s), d.byStock[s].bars, d.hasPrices ? d.byStock[s].cost.toFixed(2) : fmtLen(d.byStock[s].bars*(+s))]);
+  });
+  rows.push([]);
+  rows.push(['Cutting Summary - how to cut each bar']);
+  rows.push(['Stock Length (m)','Cut Into','Bars','Waste per bar (m)']);
+  d.patterns.forEach(p=>{
+    const pieceEntries = Object.entries(p.fill).sort((a,b)=>b[0]-a[0]);
+    const pieceText = pieceEntries.map(([l,c])=>`${c}x${fmtLen(+l)}m`).join(' + ');
+    rows.push([fmtLen(+p.S), pieceText, p.count, fmtLen(p.waste)]);
+  });
+  const unfKeys = Object.keys(d.unfulfilled);
+  if (unfKeys.length){
+    rows.push([]);
+    rows.push(['Unfulfillable pieces (no stock length long enough)']);
+    rows.push(['Length (m)','Qty (pcs)']);
+    unfKeys.forEach(l=>rows.push([fmtLen(+l), d.unfulfilled[l]]));
+  }
+
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(["\ufeff" + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rebar_cutting_plan.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+calculate();
+</script>
+</body>
+</html>

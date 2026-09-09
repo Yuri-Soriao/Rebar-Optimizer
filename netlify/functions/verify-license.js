@@ -40,7 +40,9 @@ exports.handler = async function (event) {
     validKeys.includes('RBAR-TEST-2026-0003')
   );
 
-  const isValid = validKeys.includes(key);
+  const isValid = validKeys.some(
+  validKey => validKey.toUpperCase() === key.toUpperCase()
+);
 
   console.log('DIAGNOSTIC: Submitted key valid:', isValid);
 

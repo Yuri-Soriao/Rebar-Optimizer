@@ -34,6 +34,7 @@ exports.handler = async function (event) {
   console.log('DIAGNOSTIC: LICENSE_KEYS exists:', !!process.env.LICENSE_KEYS);
   console.log('DIAGNOSTIC: Number of configured keys:', validKeys.length);
   console.log('DIAGNOSTIC: Submitted key length:', key.length);
+  console.log('DIAGNOSTIC: Submitted key:', JSON.stringify(key));
   console.log(
     'DIAGNOSTIC: Test key matches:',
     validKeys.includes('RBAR-TEST-2026-0003')
